@@ -4,7 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#8a6a3a">
-<title>경율논 3장</title>
+<title>경율논 3장 — 빠알리 삼장 한글 대역</title>
+<meta name="description" content="빠알리 삼장을 팔리 원문과 한글로 나란히 읽습니다. 2,047편.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="경율논 3장">
+<meta property="og:title" content="경율논 3장 — 빠알리 삼장 한글 대역">
+<meta property="og:description" content="팔리 원문과 한글을 나란히. 쿳다까니까야 14책 1,987편.">
+<meta property="og:image" content="icon-512.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
@@ -241,7 +247,7 @@ const S={
   set(k,v){ try{ localStorage.setItem('kyl3_'+k,JSON.stringify(v)) }catch(e){} }
 };
 let stars=S.get('stars',[]), recent=S.get('recent',[]), hits=S.get('hits',{});
-const DEF={fs:15, fw:700, lh:1.75, ff:'KR', theme:'dark', marks:1, mode:0, den:2, code:1};
+const DEF={fs:15, fw:700, lh:1.75, ff:'KR', theme:'dark', marks:1, mode:0, den:2, code:1, plink:0};
 let C=Object.assign({}, DEF, S.get('cfg',{}));
 mode=C.mode;
 function apply(){
@@ -428,6 +434,8 @@ const SEG=[
  ['목록'],
  ['den','한 화면에','줄 간격과 따로 놉니다',[[1,'넉넉히'],[2,'조금 많이'],[3,'많이'],[4,'아주 많이']]],
  ['code','파일 코드','M_UD_01_001_ 같은 앞머리',[[1,'보임'],[0,'숨김']]],
+ ['나눔'],
+ ['plink','공유 주소','미리보기는 s/ 파일을 올린 뒤에',[[0,'짧게 (#)'],[1,'미리보기 (s/)']]],
  ['보기'],
  ['mode','대역','',           [[0,'팔리와 한글'],[1,'한글만'],[2,'팔리만']]],
  ['marks','§ 표시','게송·산문 번호',[[1,'보임'],[0,'숨김']]],
@@ -549,15 +557,17 @@ const hit=r=>hits[r]? '<span class="hit">'+hits[r]+'</span>' : '';
    → M_UD_01_001_빠타마보디 (첫 번째 깨달음)   ← 설정에서 끌 수 있다 */
 /* ── 경마다 주소를 준다 — 카톡으로 링크를 보내면 그 경이 바로 열린다 ── */
 let ID=null, BYID=null;
+function h32(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h*33)^s.charCodeAt(i))>>>0; return h.toString(36); }
 function buildId(){
   const cnt={}; ID={}; BYID={};
   for(const r in D.docs){ const n=D.docs[r].n||''; const i=n.lastIndexOf('_');
     const c=i>0?n.slice(0,i):n; cnt[c]=(cnt[c]||0)+1; }
   for(const r in D.docs){
     const d=D.docs[r], n=d.n||'', i=n.lastIndexOf('_'), c=i>0?n.slice(0,i):n;
-    const id=(cnt[c]===1 && /^[!-~]+$/.test(c))? c : n;
+    // 겹치지 않고 아스키인 코드면 그대로, 아니면 경로에서 뽑은 짧은 이름
+    const id=(cnt[c]===1 && /^[!-~]+$/.test(c))? c : ('x'+h32(r));
     ID[r]=id; BYID[id.toLowerCase()]=r;
-    if(n) BYID[n.toLowerCase()]=r;                      // 파일명 전체로도
+    if(n && !BYID[n.toLowerCase()]) BYID[n.toLowerCase()]=r;   // 파일명 전체로도
   }
 }
 const idOf=r=>{ if(!ID) buildId(); return ID[r]||''; };
@@ -570,7 +580,8 @@ function byId(h){
     if((d.c||'').indexOf('bilara: '+h)>=0) return r; }
   return null;
 }
-const linkOf=r=>location.origin+location.pathname.replace(/index\.html$/,'')+'#'+idOf(r);
+const base=()=>location.origin+location.pathname.replace(/index\.html$/,'').replace(/s\/[^/]*$/,'');
+const linkOf=r=> C.plink ? base()+'s/'+idOf(r)+'.html' : base()+'#'+idOf(r);
 function disp(r){
   const d=D.docs[r]; if(!d) return '';
   if(!C.code) return d.t;
@@ -628,12 +639,13 @@ $('mode').onclick=()=>{ mode=(mode+1)%3; C.mode=mode; apply(); viewDoc();
 $('top').onclick=()=>scrollTo({top:0,behavior:'smooth'});
 $('shr').onclick=async()=>{
   if(!cur) return;
-  const u=linkOf(cur), t=disp(cur);
+  const d=D.docs[cur], t=disp(cur), u=linkOf(cur);
+  const msg=t+(d.s?'\n'+d.s:'')+'\n'+u;         // 제목·소속을 글로 함께 보낸다
   if(navigator.share){
-    try{ await navigator.share({title:t, text:t, url:u}); return; }
+    try{ await navigator.share({title:t, text:t+(d.s?'\n'+d.s:''), url:u}); return; }
     catch(e){ if(e && e.name==='AbortError') return; }
   }
-  try{ await navigator.clipboard.writeText(u); toast('주소를 복사했습니다'); }
+  try{ await navigator.clipboard.writeText(msg); toast('제목과 주소를 복사했습니다'); }
   catch(e){ toast(u); }
 };
 function toast(m){
