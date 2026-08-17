@@ -205,7 +205,9 @@ async function boot(){
     prog(100,'자료를 읽지 못했습니다 — '+e.message); return;
   }
   const L=document.getElementById('loading'); if(L) L.remove();
-  render(); askInstall();
+  render();
+  try{ history.replaceState(snap(),''); }catch(e){}   // 첫 칸을 깔아 둔다
+  askInstall();
 }
 
 /* ── 마크다운 → 화면 ───────────────────── */
@@ -351,26 +353,48 @@ function viewDoc(){
 }
 
 /* ── 조작 ─────────────────────────────── */
-function open(r){
-  cur=r;
-  recent=[r].concat(recent.filter(x=>x!==r)).slice(0,60); S.set('recent',recent);
+/* 폰의 뒤로가기 단추가 앱 안에서 한 칸씩 물러나게 한다.
+   가는 곳마다 history 에 한 칸을 쌓아 두어야 뒤로가기가 앱을 빠져나가지 않는다. */
+const snap=()=>({path:path.slice(), cur, tab, q});
+function push(fn){
+  // 지금 화면의 스크롤 자리를 먼저 갈무리해 둔다 — 돌아왔을 때 그 자리로
+  try{ history.replaceState(Object.assign(snap(),{y:scrollY}),''); }catch(e){}
+  fn();
+  try{ history.pushState(snap(),''); }catch(e){}
   render();
 }
+function restore(s){
+  path=(s.path||[]).slice(); cur=s.cur||null; tab=s.tab||'tree'; q=s.q||'';
+  document.querySelectorAll('nav.tab button').forEach(x=>x.classList.toggle('on',x.dataset.tab===tab));
+  render();
+  if(s.y) setTimeout(()=>scrollTo(0,s.y),0);
+}
+addEventListener('popstate',e=>{
+  const box=$('install');
+  if(box && box.classList.contains('show')){ box.classList.remove('show');
+    try{ history.pushState(snap(),''); }catch(err){} return; }
+  if(e.state) restore(e.state);
+});
+
+function open(r){
+  push(()=>{
+    cur=r;
+    recent=[r].concat(recent.filter(x=>x!==r)).slice(0,60); S.set('recent',recent);
+  });
+}
 document.addEventListener('click',e=>{
-  const li=e.target.closest('[data-doc]');        if(li){ open(li.dataset.doc); return; }
-  const dr=e.target.closest('[data-dir]');        if(dr){ path.push(dr.dataset.dir); render(); return; }
+  const li=e.target.closest('[data-doc]');   if(li){ open(li.dataset.doc); return; }
+  const dr=e.target.closest('[data-dir]');   if(dr){ push(()=>path.push(dr.dataset.dir)); return; }
   const up=e.target.closest('[data-up]');
-  if(up){ path=path.slice(0,+up.dataset.up+1); render(); return; }
+  if(up){ push(()=>{ path=path.slice(0,+up.dataset.up+1); cur=null; }); return; }
   const lk=e.target.closest('[data-link]');
   if(lk){ e.preventDefault();
     const n=lk.dataset.link;
     for(const r in D.docs) if(D.docs[r].n===n){ open(r); return; }
     return; }
 });
-$('back').onclick=()=>{
-  if(cur){ cur=null; render(); return; }
-  if(path.length){ path.pop(); render(); }
-};
+/* 머리말의 ‹ 와 폰의 뒤로가기가 똑같이 움직이게 한다 */
+$('back').onclick=()=>history.back();
 $('star').onclick=()=>{
   if(!cur) return;
   stars = stars.includes(cur)? stars.filter(x=>x!==cur) : [cur].concat(stars);
@@ -383,10 +407,12 @@ $('fontp').onclick=()=>setFs(Math.min(26,fs+1));
 $('fontm').onclick=()=>setFs(Math.max(13,fs-1));
 function setFs(v){ fs=v; S.set('fs',v); document.documentElement.style.setProperty('--fs',v+'px'); }
 document.querySelectorAll('nav.tab button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('nav.tab button').forEach(x=>x.classList.toggle('on',x===b));
-  tab=b.dataset.tab; cur=null; if(tab==='tree') {} render();
+  if(b.dataset.tab===tab && !cur) return;
+  push(()=>{
+    document.querySelectorAll('nav.tab button').forEach(x=>x.classList.toggle('on',x===b));
+    tab=b.dataset.tab; cur=null;
+  });
 });
-addEventListener('popstate',()=>{ $('back').click(); });
 
 /* ── 홈 화면에 추가 ─────────────────────── */
 let defer=null;
