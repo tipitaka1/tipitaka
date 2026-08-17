@@ -69,15 +69,31 @@ ul.nav .lb small{color:var(--dim);font-size:.78em;display:block;margin-top:2px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 ul.nav .ct{color:var(--dim);font-size:.75em;white-space:nowrap}
 ul.nav .ar{color:var(--dim)}
+/* 한 화면에 더 많이 — 설정의 「목록 빽빽하게」 */
+html[data-den='2'] ul.den li{padding:9px 12px;margin:5px 0;border-radius:10px}
+html[data-den='2'] ul.den .lb b{font-size:.95em}
+html[data-den='2'] ul.den .lb small{font-size:.74em;margin-top:0}
+html[data-den='3'] ul.den li{padding:7px 12px;margin:4px 0;border-radius:9px;line-height:1.5}
+html[data-den='3'] ul.den .lb b{font-size:.92em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html[data-den='3'] ul.den .lb small{display:none}
+html[data-den='4'] ul.den li{padding:4px 10px;margin:0;border-radius:0;border-width:0 0 1px;
+  background:none;line-height:1.45}
+html[data-den='4'] ul.den li:first-child{border-top:1px solid var(--line)}
+html[data-den='4'] ul.den .lb b{font-size:.86em;font-weight:400;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html[data-den='4'] ul.den .lb small{display:none}
+html[data-den='4'] ul.den .ar{display:none}
+html[data-den='4'] ul.den .hit{padding:0 5px;font-size:.68em}
 .crumb{color:var(--dim);font-size:.78em;padding:2px 2px 8px;line-height:1.5}
 .crumb span{cursor:pointer}
 .crumb span:not(:last-child)::after{content:' › ';color:var(--line)}
 /* 본문 */
 article{max-width:760px;margin:0 auto}
-article h1{font-size:1.35em;line-height:1.4;margin:.2em 0 .1em}
+article h1{font-size:1.22em;line-height:1.45;margin:.2em 0 .1em;word-break:break-all}
 article h2{font-size:1.02em;color:var(--accent);margin:1.7em 0 .5em;
   padding-bottom:.3em;border-bottom:1px solid var(--line);font-weight:700}
-article .sub{color:var(--dim);font-size:.8em;margin-bottom:1.2em;line-height:1.6}
+article .sub{color:var(--dim);font-size:.78em;margin:.1em 0 1.4em;line-height:1.6}
+article h1+.sub{margin-top:.3em}
 article p{margin:.55em 0;white-space:pre-wrap;word-break:keep-all;font-weight:var(--fw)}
 article p.pali{color:var(--pali);font-family:PALI,'Gentium Plus','Charis SIL',Georgia,serif;
   font-style:italic;white-space:pre-wrap;margin:.9em 0 .2em}
@@ -218,14 +234,14 @@ const S={
   set(k,v){ try{ localStorage.setItem('kyl3_'+k,JSON.stringify(v)) }catch(e){} }
 };
 let stars=S.get('stars',[]), recent=S.get('recent',[]), hits=S.get('hits',{});
-const DEF={fs:15, fw:700, lh:1.75, ff:'KR', theme:'dark', marks:1, mode:0};
+const DEF={fs:15, fw:700, lh:1.75, ff:'KR', theme:'dark', marks:1, mode:0, den:4};
 let C=Object.assign({}, DEF, S.get('cfg',{}));
 mode=C.mode;
 function apply(){
   const R=document.documentElement.style, H=document.documentElement;
   R.setProperty('--fs',C.fs+'px'); R.setProperty('--fw',C.fw);
   R.setProperty('--lh',C.lh);      R.setProperty('--ff',C.ff);
-  H.dataset.theme=C.theme; H.dataset.marks=C.marks;
+  H.dataset.theme=C.theme; H.dataset.marks=C.marks; H.dataset.den=C.den;
   const b=document.getElementById('bold'); if(b) b.classList.toggle('act',C.fw>=700);
   S.set('cfg',C);
 }
@@ -263,11 +279,11 @@ function isPali(l){
   if(/[가-힣]/.test(l)) return false;
   return /[a-zA-Zāīūṃṅñṭḍṇḷ]/.test(l);
 }
-function md2html(src){
+function md2html(src,h1){
   const out=[]; const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   for(const blk of src.split(/\n\s*\n/)){
     const b=blk.trim(); if(!b) continue;
-    if(/^# /.test(b)){ out.push('<h1>'+esc(b.slice(2))+'</h1>'); continue; }
+    if(/^# /.test(b)){ out.push('<h1>'+esc(h1||b.slice(2))+'</h1>'); continue; }
     if(/^#{2,4} /.test(b)){ out.push('<h2>'+esc(b.replace(/^#+ /,''))+'</h2>'); continue; }
     if(/^§/.test(b) && b.split('\n').length===1){ out.push('<div class="mk">'+esc(b)+'</div>'); continue; }
     const lines=b.split('\n');
@@ -319,7 +335,7 @@ function viewTree(){
     path.forEach((p,i)=>h+='<span data-up="'+i+'">'+D.nodes[p].l+'</span>');
     h+='</div>';
   }
-  h+='<ul class="nav">';
+  h+='<ul class="nav den">';
   for(const k of kids){
     const n=D.nodes[k];
     h+='<li data-dir="'+k+'"><div class="lb"><b>'+n.l+'</b></div>'
@@ -396,6 +412,8 @@ const SEG=[
  ['ff','본문 서체','',        [['KR','고딕'],['MJ','명조']]],
  ['fw','글자 굵기','',        [[400,'보통'],[700,'진하게']]],
  ['lh','줄 간격','',          [[1.5,'좁게'],[1.75,'보통'],[2.05,'넓게']]],
+ ['목록'],
+ ['den','한 화면에','줄 간격과 따로 놉니다',[[1,'넉넉히'],[2,'조금 많이'],[3,'많이'],[4,'아주 많이']]],
  ['보기'],
  ['mode','대역','',           [[0,'팔리와 한글'],[1,'한글만'],[2,'팔리만']]],
  ['marks','§ 표시','게송·산문 번호',[[1,'보임'],[0,'숨김']]],
@@ -457,8 +475,11 @@ function viewDoc(){
   $('title').textContent=d.t;
   $('star').textContent = stars.includes(cur)?'★':'☆';
   const n=hits[cur]||0;
-  M.innerHTML='<article><div class="sub">'+d.t+(d.s?'<br>'+d.s:'')+(d.st?' · '+d.st:'')
-    +(n?' · 조회 '+n:'')+'</div>'+md2html(d.c)+'</article>';
+  let body=md2html(d.c, d.t);
+  if(!/^<h1>/.test(body)) body='<h1>'+d.t+'</h1>'+body;      // 큰 제목이 없던 파일도 붙인다
+  const sub='<div class="sub">'+(d.s||'')+(d.st?' · '+d.st:'')+(n?' · 조회 '+n:'')+'</div>';
+  body=body.replace(/(<\/h1>)/, '$1'+sub);                   // 큰 제목 바로 아래에
+  M.innerHTML='<article>'+body+'</article>';
   scrollTo(0,0);
 }
 
