@@ -13,24 +13,32 @@
   font-weight:400;font-style:normal;font-display:swap}
 @font-face{font-family:KR;src:url(f-krb.woff2) format('woff2');
   font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:MJ;src:url(f-mj.woff2) format('woff2');
+  font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:MJ;src:url(f-mjb.woff2) format('woff2');
+  font-weight:700;font-style:normal;font-display:swap}
 @font-face{font-family:PALI;src:url(f-pali.woff2) format('woff2');
   font-weight:400;font-style:italic;font-display:swap}
 
 :root{
   --bg:#faf7f2; --fg:#2a2622; --dim:#7d7268; --line:#e4dcd0;
   --accent:#8a6a3a; --card:#fff; --pali:#6b5a44; --hl:#ffe9a8;
-  --fs:17px;
+  --fs:17px; --lh:1.75; --fw:400; --ff:KR;
 }
-@media(prefers-color-scheme:dark){:root{
+@media(prefers-color-scheme:dark){html:not([data-theme=light]){
   --bg:#17150f; --fg:#e8e2d6; --dim:#9a9084; --line:#332e26;
   --accent:#d4ac70; --card:#201d16; --pali:#c2ab86; --hl:#5c4a1e;
 }}
+html[data-theme=dark]{
+  --bg:#17150f; --fg:#e8e2d6; --dim:#9a9084; --line:#332e26;
+  --accent:#d4ac70; --card:#201d16; --pali:#c2ab86; --hl:#5c4a1e;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
 body{
   background:var(--bg);color:var(--fg);
-  font-family:KR,'Noto Sans KR','Apple SD Gothic Neo',system-ui,-apple-system,sans-serif;
-  font-size:var(--fs);line-height:1.75;overscroll-behavior-y:none;
+  font-family:var(--ff),'Noto Sans KR','Apple SD Gothic Neo',system-ui,-apple-system,sans-serif;
+  font-size:var(--fs);line-height:var(--lh);overscroll-behavior-y:none;
 }
 header{
   position:sticky;top:0;z-index:20;background:var(--bg);
@@ -44,7 +52,10 @@ button{
   border-radius:9px;padding:6px 11px;font-size:.85em;font-family:inherit;cursor:pointer;
 }
 button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-button.icon{border:none;padding:6px 8px;font-size:1.15em;color:var(--dim)}
+button.icon{border:none;padding:6px 6px;font-size:1.1em;color:var(--dim)}
+button.icon.act{color:var(--accent)}
+#bold{font-weight:400}
+#bold.act{font-weight:900}
 main{padding:8px 12px calc(env(safe-area-inset-bottom) + 72px)}
 ul.nav{list-style:none;margin:0;padding:0}
 ul.nav li{
@@ -67,13 +78,14 @@ article h1{font-size:1.35em;line-height:1.4;margin:.2em 0 .1em}
 article h2{font-size:1.02em;color:var(--accent);margin:1.7em 0 .5em;
   padding-bottom:.3em;border-bottom:1px solid var(--line);font-weight:700}
 article .sub{color:var(--dim);font-size:.8em;margin-bottom:1.2em;line-height:1.6}
-article p{margin:.55em 0;white-space:pre-wrap;word-break:keep-all}
+article p{margin:.55em 0;white-space:pre-wrap;word-break:keep-all;font-weight:var(--fw)}
 article p.pali{color:var(--pali);font-family:PALI,'Gentium Plus','Charis SIL',Georgia,serif;
   font-style:italic;white-space:pre-wrap;margin:.9em 0 .2em}
 article .mk{color:var(--accent);font-weight:700;font-size:.82em;margin:1.5em 0 .1em;letter-spacing:.03em}
+html[data-marks='0'] article .mk{display:none}
 article a{color:var(--accent)}
 article ul.bul{margin:.6em 0;padding-left:1.1em}
-article ul.bul li{margin:.45em 0;white-space:pre-wrap;word-break:keep-all}
+article ul.bul li{margin:.45em 0;white-space:pre-wrap;word-break:keep-all;font-weight:var(--fw)}
 article ul.bul li::marker{color:var(--dim)}
 article b{font-weight:700}
 article code{background:var(--card);border:1px solid var(--line);border-radius:5px;
@@ -86,6 +98,20 @@ article code{background:var(--card);border:1px solid var(--line);border-radius:5
 .searchbar input:focus{border-color:var(--accent)}
 mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
 .empty{color:var(--dim);text-align:center;padding:48px 20px;line-height:1.9}
+/* 설정 */
+.grp{margin:18px 0 8px;color:var(--accent);font-size:.78em;font-weight:700;letter-spacing:.04em}
+.row{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  margin:7px 0;padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.row .rl{flex:1;min-width:88px;font-size:.92em}
+.row .rl small{display:block;color:var(--dim);font-size:.76em;margin-top:1px}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:none;border-radius:0;padding:7px 12px;font-size:.82em;
+  border-left:1px solid var(--line);white-space:nowrap}
+.seg button:first-child{border-left:none}
+.seg button.on{background:var(--accent);color:#fff}
+.row.tap{cursor:pointer}
+.row .ar{color:var(--dim)}
+.note{color:var(--dim);font-size:.78em;line-height:1.8;padding:6px 4px 0}
 nav.tab{
   position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;
   background:var(--bg);border-top:1px solid var(--line);
@@ -143,6 +169,7 @@ nav.tab button.on{color:var(--accent);background:none}
   <button class="icon" id="back" style="display:none">‹</button>
   <div class="t" id="title">경율논 3장</div>
   <button class="icon" id="star" style="display:none">☆</button>
+  <button class="icon" id="bold" title="글자 굵기">가</button>
   <button class="icon" id="fontm">A－</button>
   <button class="icon" id="fontp">A＋</button>
 </header>
@@ -157,8 +184,7 @@ nav.tab button.on{color:var(--accent);background:none}
 <nav class="tab">
   <button data-tab="tree" class="on"><b>☰</b>차례</button>
   <button data-tab="find"><b>⌕</b>찾기</button>
-  <button data-tab="star"><b>★</b>즐겨찾기</button>
-  <button data-tab="recent"><b>↺</b>최근</button>
+  <button data-tab="set"><b>⚙</b>설정</button>
 </nav>
 
 <script>
@@ -189,8 +215,19 @@ const S={
   get(k,f){ try{ return JSON.parse(localStorage.getItem('kyl3_'+k)) ?? f }catch(e){ return f } },
   set(k,v){ try{ localStorage.setItem('kyl3_'+k,JSON.stringify(v)) }catch(e){} }
 };
-let stars=S.get('stars',[]), recent=S.get('recent',[]), fs=S.get('fs',17);
-document.documentElement.style.setProperty('--fs',fs+'px');
+let stars=S.get('stars',[]), recent=S.get('recent',[]);
+const DEF={fs:17, fw:400, lh:1.75, ff:'KR', theme:'auto', marks:1, mode:0};
+let C=Object.assign({}, DEF, S.get('cfg',{}));
+mode=C.mode;
+function apply(){
+  const R=document.documentElement.style, H=document.documentElement;
+  R.setProperty('--fs',C.fs+'px'); R.setProperty('--fw',C.fw);
+  R.setProperty('--lh',C.lh);      R.setProperty('--ff',C.ff);
+  H.dataset.theme=C.theme; H.dataset.marks=C.marks;
+  const b=document.getElementById('bold'); if(b) b.classList.toggle('act',C.fw>=700);
+  S.set('cfg',C);
+}
+apply();
 
 /* ── 자료 펴기 ─────────────────────────── */
 const prog=(p,m)=>{ const b=document.getElementById('lbar'), s=document.getElementById('lmsg');
@@ -263,6 +300,7 @@ function render(){
   $('back').style.display = (cur||path.length)?'':'none';
   if(cur) return viewDoc();
   if(tab==='find')   return viewFind();
+  if(tab==='set')    return viewSet();
   if(tab==='star')   return viewList(stars,'즐겨찾기가 비어 있습니다.\n경을 열고 오른쪽 위 ☆ 를 누르세요.');
   if(tab==='recent') return viewList(recent,'최근에 본 경이 없습니다.');
   return viewTree();
@@ -352,6 +390,64 @@ function runFind(){
     }).join('')+(hits.length>400?'<li style="justify-content:center;color:var(--dim)">앞 400편만 보입니다</li>':'')+'</ul>';
 }
 
+const SEG=[
+ ['ff','본문 서체','',        [['KR','고딕'],['MJ','명조']]],
+ ['fw','글자 굵기','',        [[400,'보통'],[700,'진하게']]],
+ ['lh','줄 간격','',          [[1.5,'좁게'],[1.75,'보통'],[2.05,'넓게']]],
+ ['보기'],
+ ['mode','대역','',           [[0,'팔리와 한글'],[1,'한글만'],[2,'팔리만']]],
+ ['marks','§ 표시','게송·산문 번호',[[1,'보임'],[0,'숨김']]],
+ ['theme','화면','',          [['auto','기기 설정'],['light','밝게'],['dark','어둡게']]],
+];
+function viewSet(){
+  $('title').textContent='설정';
+  let h='<div class="grp">읽기</div>'
+    +'<div class="row"><div class="rl">글자 크기</div><div class="seg">'
+    +'<button data-fs="-1">A－</button><button data-fs="0" style="min-width:52px">'+C.fs+'</button>'
+    +'<button data-fs="1">A＋</button></div></div>';
+  for(const r of SEG){
+    if(r.length===1){ h+='<div class="grp">'+r[0]+'</div>'; continue; }
+    const [k,lab,sub,opts]=r;
+    const now = k==='mode'? mode : C[k];
+    h+='<div class="row"><div class="rl">'+lab+(sub?'<small>'+sub+'</small>':'')+'</div><div class="seg">'
+      + opts.map(([v,t])=>'<button data-k="'+k+'" data-v="'+v+'" class="'
+          + (String(now)===String(v)?'on':'') + '">'+t+'</button>').join('')
+      + '</div></div>';
+  }
+  h+='<div class="grp">보관</div>'
+   + '<div class="row tap" data-go="star"><div class="rl">즐겨찾기</div>'
+   + '<span class="ct">'+stars.filter(r=>D.docs[r]).length+'편</span><span class="ar">›</span></div>'
+   + '<div class="row tap" data-go="recent"><div class="rl">최근 본 경</div>'
+   + '<span class="ct">'+recent.filter(r=>D.docs[r]).length+'편</span><span class="ar">›</span></div>'
+   + '<div class="grp">자료</div>'
+   + '<div class="row"><div class="rl">담긴 것<small>'+D.nfile.toLocaleString()+'편 · '+D.ver+' 판</small></div></div>'
+   + '<div class="row tap" id="upd"><div class="rl">새 자료 확인<small id="updm">눌러서 확인합니다</small></div><span class="ar">↻</span></div>'
+   + '<div class="note">설정은 이 기기에만 저장됩니다. 앱을 지우면 함께 사라집니다.</div>';
+  M.innerHTML=h; scrollTo(0,0);
+}
+async function checkUpdate(){
+  const m=$('updm'); if(!m) return;
+  if(!location.protocol.startsWith('http')){
+    m.textContent='이 판은 파일 하나로 되어 있어 확인할 수 없습니다'; return; }
+  m.textContent='확인하는 중…';
+  try{
+    const r=await fetch('data.bin',{cache:'reload'});
+    if(!r.ok) throw new Error(String(r.status));
+    const nd=JSON.parse(await unzip(new Uint8Array(await r.arrayBuffer())));
+    if(nd.ver===D.ver && nd.nfile===D.nfile){
+      m.textContent='이미 가장 새것입니다 ('+D.ver+' 판 · '+D.nfile.toLocaleString()+'편)'; return; }
+    m.textContent=nd.nfile.toLocaleString()+'편 ('+nd.ver+' 판) — 받아서 다시 엽니다';
+    if('caches' in window){
+      for(const k of await caches.keys()){
+        const c=await caches.open(k);
+        await c.delete('./data.bin').catch(()=>{});
+        await c.delete(new URL('data.bin',location).href).catch(()=>{});
+      }
+    }
+    try{ const reg=await navigator.serviceWorker.getRegistration(); if(reg) await reg.update(); }catch(e){}
+    setTimeout(()=>location.reload(), 900);
+  }catch(err){ m.textContent='확인하지 못했습니다 — '+err.message; }
+}
 function viewDoc(){
   const d=D.docs[cur];
   $('title').textContent=d.t;
@@ -373,7 +469,8 @@ function push(fn){
 }
 function restore(s){
   path=(s.path||[]).slice(); cur=s.cur||null; tab=s.tab||'tree'; q=s.q||'';
-  document.querySelectorAll('nav.tab button').forEach(x=>x.classList.toggle('on',x.dataset.tab===tab));
+  const t2 = (tab==='star'||tab==='recent')? 'set' : tab;
+  document.querySelectorAll('nav.tab button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t2));
   render();
   if(s.y) setTimeout(()=>scrollTo(0,s.y),0);
 }
@@ -395,6 +492,16 @@ document.addEventListener('click',e=>{
   const dr=e.target.closest('[data-dir]');   if(dr){ push(()=>path.push(dr.dataset.dir)); return; }
   const up=e.target.closest('[data-up]');
   if(up){ push(()=>{ path=path.slice(0,+up.dataset.up+1); cur=null; }); return; }
+  const sg=e.target.closest('[data-k]');
+  if(sg){ const k=sg.dataset.k; let v=sg.dataset.v;
+    if(k==='mode'){ mode=+v; C.mode=+v; } else C[k]= isNaN(+v)? v : +v;
+    apply(); viewSet(); return; }
+  const fz=e.target.closest('[data-fs]');
+  if(fz){ const d=+fz.dataset.fs; if(d) C.fs=Math.max(13,Math.min(28,C.fs+d)); else C.fs=DEF.fs;
+    apply(); viewSet(); return; }
+  if(e.target.closest('#upd')){ checkUpdate(); return; }
+  const gg=e.target.closest('[data-go]');
+  if(gg){ push(()=>{ tab=gg.dataset.go; cur=null; }); return; }
   const lk=e.target.closest('[data-link]');
   if(lk){ e.preventDefault();
     const n=lk.dataset.link;
@@ -408,12 +515,12 @@ $('star').onclick=()=>{
   stars = stars.includes(cur)? stars.filter(x=>x!==cur) : [cur].concat(stars);
   S.set('stars',stars); $('star').textContent=stars.includes(cur)?'★':'☆';
 };
-$('mode').onclick=()=>{ mode=(mode+1)%3; viewDoc();
+$('mode').onclick=()=>{ mode=(mode+1)%3; C.mode=mode; apply(); viewDoc();
   $('mode').textContent=['⇄','한','P'][mode]; };
 $('top').onclick=()=>scrollTo({top:0,behavior:'smooth'});
-$('fontp').onclick=()=>setFs(Math.min(26,fs+1));
-$('fontm').onclick=()=>setFs(Math.max(13,fs-1));
-function setFs(v){ fs=v; S.set('fs',v); document.documentElement.style.setProperty('--fs',v+'px'); }
+$('fontp').onclick=()=>{ C.fs=Math.min(28,C.fs+1); apply(); if(tab==='set'&&!cur) viewSet(); };
+$('fontm').onclick=()=>{ C.fs=Math.max(13,C.fs-1); apply(); if(tab==='set'&&!cur) viewSet(); };
+$('bold').onclick=()=>{ C.fw = C.fw>=700?400:700; apply(); if(tab==='set'&&!cur) viewSet(); };
 document.querySelectorAll('nav.tab button').forEach(b=>b.onclick=()=>{
   if(b.dataset.tab===tab && !cur) return;
   push(()=>{
