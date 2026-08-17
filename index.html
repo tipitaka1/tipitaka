@@ -98,6 +98,8 @@ article code{background:var(--card);border:1px solid var(--line);border-radius:5
 .searchbar input:focus{border-color:var(--accent)}
 mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
 .empty{color:var(--dim);text-align:center;padding:48px 20px;line-height:1.9}
+.hit{color:var(--dim);font-size:.72em;white-space:nowrap;
+  border:1px solid var(--line);border-radius:20px;padding:1px 7px}
 /* 설정 */
 .grp{margin:18px 0 8px;color:var(--accent);font-size:.78em;font-weight:700;letter-spacing:.04em}
 .row{background:var(--card);border:1px solid var(--line);border-radius:12px;
@@ -166,7 +168,6 @@ nav.tab button.on{color:var(--accent);background:none}
 </div>
 
 <header>
-  <button class="icon" id="back" style="display:none">‹</button>
   <div class="t" id="title">경율논 3장</div>
   <button class="icon" id="star" style="display:none">☆</button>
   <button class="icon" id="bold" title="글자 굵기">가</button>
@@ -182,7 +183,8 @@ nav.tab button.on{color:var(--accent);background:none}
 </div>
 
 <nav class="tab">
-  <button data-tab="tree" class="on"><b>☰</b>차례</button>
+  <button data-act="home" class="on"><b>⌂</b>홈</button>
+  <button data-act="up"><b>↰</b>뒤로</button>
   <button data-tab="find"><b>⌕</b>찾기</button>
   <button data-tab="set"><b>⚙</b>설정</button>
 </nav>
@@ -191,7 +193,7 @@ nav.tab button.on{color:var(--accent);background:none}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 2820877);
+  const tot = +(r.headers.get('content-length') || 2836679);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
@@ -215,8 +217,8 @@ const S={
   get(k,f){ try{ return JSON.parse(localStorage.getItem('kyl3_'+k)) ?? f }catch(e){ return f } },
   set(k,v){ try{ localStorage.setItem('kyl3_'+k,JSON.stringify(v)) }catch(e){} }
 };
-let stars=S.get('stars',[]), recent=S.get('recent',[]);
-const DEF={fs:17, fw:400, lh:1.75, ff:'KR', theme:'auto', marks:1, mode:0};
+let stars=S.get('stars',[]), recent=S.get('recent',[]), hits=S.get('hits',{});
+const DEF={fs:15, fw:700, lh:1.75, ff:'KR', theme:'dark', marks:1, mode:0};
 let C=Object.assign({}, DEF, S.get('cfg',{}));
 mode=C.mode;
 function apply(){
@@ -295,9 +297,9 @@ const $=id=>document.getElementById(id);
 const M=$('main');
 
 function render(){
+  litTab();
   $('star').style.display = cur?'':'none';
   $('fabs').style.display = cur?'flex':'none';
-  $('back').style.display = (cur||path.length)?'':'none';
   if(cur) return viewDoc();
   if(tab==='find')   return viewFind();
   if(tab==='set')    return viewSet();
@@ -326,7 +328,7 @@ function viewTree(){
   for(const r of docs){
     const d=D.docs[r];
     h+='<li data-doc="'+r+'"><div class="lb"><b>'+d.t+'</b>'
-      +(d.p?'<small>'+d.p+'</small>':'')+'</div><span class="ar">›</span></li>';
+      +(d.p?'<small>'+d.p+'</small>':'')+'</div>'+hit(r)+'<span class="ar">›</span></li>';
   }
   h+='</ul>';
   if(!kids.length && !docs.length) h='<div class="empty">비어 있습니다.</div>';
@@ -339,7 +341,7 @@ function viewList(arr,msg){
   if(!ok.length){ M.innerHTML='<div class="empty">'+msg.replace(/\n/g,'<br>')+'</div>'; return; }
   M.innerHTML='<ul class="nav">'+ok.map(r=>{
     const d=D.docs[r];
-    return '<li data-doc="'+r+'"><div class="lb"><b>'+d.t+'</b><small>'+(d.s||d.p)+'</small></div><span class="ar">›</span></li>';
+    return '<li data-doc="'+r+'"><div class="lb"><b>'+d.t+'</b><small>'+(d.s||d.p)+'</small></div>'+hit(r)+'<span class="ar">›</span></li>';
   }).join('')+'</ul>';
   scrollTo(0,0);
 }
@@ -419,6 +421,8 @@ function viewSet(){
    + '<span class="ct">'+stars.filter(r=>D.docs[r]).length+'편</span><span class="ar">›</span></div>'
    + '<div class="row tap" data-go="recent"><div class="rl">최근 본 경</div>'
    + '<span class="ct">'+recent.filter(r=>D.docs[r]).length+'편</span><span class="ar">›</span></div>'
+   + '<div class="row tap" id="clr"><div class="rl">조회수 지우기<small id="clrm">'
+   + Object.keys(hits).length.toLocaleString()+'편에 기록이 있습니다</small></div><span class="ar">✕</span></div>'
    + '<div class="grp">자료</div>'
    + '<div class="row"><div class="rl">담긴 것<small>'+D.nfile.toLocaleString()+'편 · '+D.ver+' 판</small></div></div>'
    + '<div class="row tap" id="upd"><div class="rl">새 자료 확인<small id="updm">눌러서 확인합니다</small></div><span class="ar">↻</span></div>'
@@ -452,7 +456,9 @@ function viewDoc(){
   const d=D.docs[cur];
   $('title').textContent=d.t;
   $('star').textContent = stars.includes(cur)?'★':'☆';
-  M.innerHTML='<article>'+(d.s?'<div class="sub">'+d.s+(d.st?' · '+d.st:'')+'</div>':'')+md2html(d.c)+'</article>';
+  const n=hits[cur]||0;
+  M.innerHTML='<article><div class="sub">'+d.t+(d.s?'<br>'+d.s:'')+(d.st?' · '+d.st:'')
+    +(n?' · 조회 '+n:'')+'</div>'+md2html(d.c)+'</article>';
   scrollTo(0,0);
 }
 
@@ -469,8 +475,6 @@ function push(fn){
 }
 function restore(s){
   path=(s.path||[]).slice(); cur=s.cur||null; tab=s.tab||'tree'; q=s.q||'';
-  const t2 = (tab==='star'||tab==='recent')? 'set' : tab;
-  document.querySelectorAll('nav.tab button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t2));
   render();
   if(s.y) setTimeout(()=>scrollTo(0,s.y),0);
 }
@@ -484,9 +488,11 @@ addEventListener('popstate',e=>{
 function open(r){
   push(()=>{
     cur=r;
+    hits[r]=(hits[r]||0)+1; S.set('hits',hits);
     recent=[r].concat(recent.filter(x=>x!==r)).slice(0,60); S.set('recent',recent);
   });
 }
+const hit=r=>hits[r]? '<span class="hit">'+hits[r]+'</span>' : '';
 document.addEventListener('click',e=>{
   const li=e.target.closest('[data-doc]');   if(li){ open(li.dataset.doc); return; }
   const dr=e.target.closest('[data-dir]');   if(dr){ push(()=>path.push(dr.dataset.dir)); return; }
@@ -500,6 +506,11 @@ document.addEventListener('click',e=>{
   if(fz){ const d=+fz.dataset.fs; if(d) C.fs=Math.max(13,Math.min(28,C.fs+d)); else C.fs=DEF.fs;
     apply(); viewSet(); return; }
   if(e.target.closest('#upd')){ checkUpdate(); return; }
+  if(e.target.closest('#clr')){
+    const m=$('clrm');
+    if(m && m.dataset.ok){ hits={}; S.set('hits',hits); viewSet(); }
+    else if(m){ m.textContent='한 번 더 누르면 모두 지웁니다'; m.dataset.ok='1'; }
+    return; }
   const gg=e.target.closest('[data-go]');
   if(gg){ push(()=>{ tab=gg.dataset.go; cur=null; }); return; }
   const lk=e.target.closest('[data-link]');
@@ -508,8 +519,21 @@ document.addEventListener('click',e=>{
     for(const r in D.docs) if(D.docs[r].n===n){ open(r); return; }
     return; }
 });
-/* 머리말의 ‹ 와 폰의 뒤로가기가 똑같이 움직이게 한다 */
-$('back').onclick=()=>history.back();
+/* ── 홈 · 뒤로(트리 위로) ─────────────────── */
+function chain(k){ const a=k.split('/'), o=[]; for(let i=0;i<a.length;i++) o.push(a.slice(0,i+1).join('/')); return o; }
+function goHome(){
+  if(!cur && tab==='tree' && !path.length) return;
+  push(()=>{ cur=null; tab='tree'; path=[]; q=''; });
+}
+function goUp(){
+  if(cur){                                   // 경을 보는 중 → 그 경이 든 갈래로
+    const par=cur.split('/').slice(0,-1).join('/');
+    push(()=>{ cur=null; tab='tree'; path= par&&D.nodes[par]? chain(par):[]; });
+    return;
+  }
+  if(tab!=='tree'){ push(()=>{ tab='tree'; }); return; }   // 찾기·설정 → 차례로
+  if(path.length) push(()=>{ path.pop(); });
+}
 $('star').onclick=()=>{
   if(!cur) return;
   stars = stars.includes(cur)? stars.filter(x=>x!==cur) : [cur].concat(stars);
@@ -521,12 +545,16 @@ $('top').onclick=()=>scrollTo({top:0,behavior:'smooth'});
 $('fontp').onclick=()=>{ C.fs=Math.min(28,C.fs+1); apply(); if(tab==='set'&&!cur) viewSet(); };
 $('fontm').onclick=()=>{ C.fs=Math.max(13,C.fs-1); apply(); if(tab==='set'&&!cur) viewSet(); };
 $('bold').onclick=()=>{ C.fw = C.fw>=700?400:700; apply(); if(tab==='set'&&!cur) viewSet(); };
+function litTab(){
+  const t2 = cur? '' : (tab==='star'||tab==='recent')? 'set' : (tab==='tree'? 'home' : tab);
+  document.querySelectorAll('nav.tab button').forEach(x=>
+    x.classList.toggle('on', (x.dataset.tab||x.dataset.act)===t2));
+}
 document.querySelectorAll('nav.tab button').forEach(b=>b.onclick=()=>{
+  if(b.dataset.act==='home') return goHome();
+  if(b.dataset.act==='up')   return goUp();
   if(b.dataset.tab===tab && !cur) return;
-  push(()=>{
-    document.querySelectorAll('nav.tab button').forEach(x=>x.classList.toggle('on',x===b));
-    tab=b.dataset.tab; cur=null;
-  });
+  push(()=>{ tab=b.dataset.tab; cur=null; });
 });
 
 /* ── 홈 화면에 추가 ─────────────────────── */
