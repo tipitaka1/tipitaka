@@ -209,7 +209,7 @@ nav.tab button.on{color:var(--accent);background:none}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 2836679);
+  const tot = +(r.headers.get('content-length') || 2820817);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
@@ -234,7 +234,7 @@ const S={
   set(k,v){ try{ localStorage.setItem('kyl3_'+k,JSON.stringify(v)) }catch(e){} }
 };
 let stars=S.get('stars',[]), recent=S.get('recent',[]), hits=S.get('hits',{});
-const DEF={fs:15, fw:700, lh:1.75, ff:'KR', theme:'dark', marks:1, mode:0, den:4};
+const DEF={fs:15, fw:700, lh:1.75, ff:'KR', theme:'dark', marks:1, mode:0, den:2, code:1};
 let C=Object.assign({}, DEF, S.get('cfg',{}));
 mode=C.mode;
 function apply(){
@@ -343,7 +343,7 @@ function viewTree(){
   }
   for(const r of docs){
     const d=D.docs[r];
-    h+='<li data-doc="'+r+'"><div class="lb"><b>'+d.t+'</b>'
+    h+='<li data-doc="'+r+'"><div class="lb"><b>'+disp(r)+'</b>'
       +(d.p?'<small>'+d.p+'</small>':'')+'</div>'+hit(r)+'<span class="ar">›</span></li>';
   }
   h+='</ul>';
@@ -357,7 +357,7 @@ function viewList(arr,msg){
   if(!ok.length){ M.innerHTML='<div class="empty">'+msg.replace(/\n/g,'<br>')+'</div>'; return; }
   M.innerHTML='<ul class="nav">'+ok.map(r=>{
     const d=D.docs[r];
-    return '<li data-doc="'+r+'"><div class="lb"><b>'+d.t+'</b><small>'+(d.s||d.p)+'</small></div>'+hit(r)+'<span class="ar">›</span></li>';
+    return '<li data-doc="'+r+'"><div class="lb"><b>'+disp(r)+'</b><small>'+(d.s||d.p)+'</small></div>'+hit(r)+'<span class="ar">›</span></li>';
   }).join('')+'</ul>';
   scrollTo(0,0);
 }
@@ -404,7 +404,7 @@ function runFind(){
       let out='', fl=flat(sn), p=0, j;
       while((j=fl.indexOf(k,p))>=0){ out+=esc(sn.slice(p,j))+'<mark>'+esc(sn.slice(j,j+k.length))+'</mark>'; p=j+k.length; }
       out+=esc(sn.slice(p));
-      return '<li data-doc="'+r+'"><div class="lb"><b>'+esc(d.t)+'</b><small>'+out+'</small></div></li>';
+      return '<li data-doc="'+r+'"><div class="lb"><b>'+esc(disp(r))+'</b><small>'+out+'</small></div></li>';
     }).join('')+(hits.length>400?'<li style="justify-content:center;color:var(--dim)">앞 400편만 보입니다</li>':'')+'</ul>';
 }
 
@@ -414,6 +414,7 @@ const SEG=[
  ['lh','줄 간격','',          [[1.5,'좁게'],[1.75,'보통'],[2.05,'넓게']]],
  ['목록'],
  ['den','한 화면에','줄 간격과 따로 놉니다',[[1,'넉넉히'],[2,'조금 많이'],[3,'많이'],[4,'아주 많이']]],
+ ['code','파일 코드','M_UD_01_001_ 같은 앞머리',[[1,'보임'],[0,'숨김']]],
  ['보기'],
  ['mode','대역','',           [[0,'팔리와 한글'],[1,'한글만'],[2,'팔리만']]],
  ['marks','§ 표시','게송·산문 번호',[[1,'보임'],[0,'숨김']]],
@@ -472,11 +473,12 @@ async function checkUpdate(){
 }
 function viewDoc(){
   const d=D.docs[cur];
-  $('title').textContent=d.t;
+  const DT=disp(cur);
+  $('title').textContent=DT;
   $('star').textContent = stars.includes(cur)?'★':'☆';
   const n=hits[cur]||0;
-  let body=md2html(d.c, d.t);
-  if(!/^<h1>/.test(body)) body='<h1>'+d.t+'</h1>'+body;      // 큰 제목이 없던 파일도 붙인다
+  let body=md2html(d.c, DT);
+  if(!/^<h1>/.test(body)) body='<h1>'+DT+'</h1>'+body;      // 큰 제목이 없던 파일도 붙인다
   const sub='<div class="sub">'+(d.s||'')+(d.st?' · '+d.st:'')+(n?' · 조회 '+n:'')+'</div>';
   body=body.replace(/(<\/h1>)/, '$1'+sub);                   // 큰 제목 바로 아래에
   M.innerHTML='<article>'+body+'</article>';
@@ -514,6 +516,14 @@ function open(r){
   });
 }
 const hit=r=>hits[r]? '<span class="hit">'+hits[r]+'</span>' : '';
+/* M_UD_01_001_빠타마보디  +  「빠타마보디 (첫 번째 깨달음)」
+   → M_UD_01_001_빠타마보디 (첫 번째 깨달음)   ← 설정에서 끌 수 있다 */
+function disp(r){
+  const d=D.docs[r]; if(!d) return '';
+  if(!C.code) return d.t;
+  const n=d.n||'', i=n.lastIndexOf('_');
+  return i>0 ? n.slice(0,i+1)+d.t : d.t;
+}
 document.addEventListener('click',e=>{
   const li=e.target.closest('[data-doc]');   if(li){ open(li.dataset.doc); return; }
   const dr=e.target.closest('[data-dir]');   if(dr){ push(()=>path.push(dr.dataset.dir)); return; }
