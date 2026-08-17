@@ -276,6 +276,7 @@ async function boot(){
   }
   const L=document.getElementById('loading'); if(L) L.remove();
   const want=byId(location.hash);
+  if(location.hash.length>1 && !want) setTimeout(()=>toast('그런 이름의 경을 찾지 못했습니다'),600);
   if(want){                                   // 링크로 들어온 경우 — 그 경을 바로 연다
     cur=want; hits[cur]=(hits[cur]||0)+1; S.set('hits',hits);
     recent=[cur].concat(recent.filter(x=>x!==cur)).slice(0,60); S.set('recent',recent);
@@ -515,6 +516,20 @@ function restore(s){
   try{ history.replaceState(s,'',hashNow()); }catch(e){}
   if(s.y) setTimeout(()=>scrollTo(0,s.y),0);
 }
+/* 주소창에서 # 뒤만 바꾸면 브라우저는 페이지를 다시 읽지 않는다.
+   그때는 hashchange 만 오므로 여기서 받아 그 경을 연다. */
+addEventListener('hashchange',()=>{
+  const h=location.hash.replace(/^#/,'');
+  if(!h){ if(cur){ cur=null; render(); } return; }
+  const r=byId(h);
+  if(!r){ toast('그런 이름의 경을 찾지 못했습니다'); return; }
+  if(r===cur) return;
+  cur=r; tab='tree';
+  hits[r]=(hits[r]||0)+1; S.set('hits',hits);
+  recent=[r].concat(recent.filter(x=>x!==r)).slice(0,60); S.set('recent',recent);
+  render();
+  try{ history.replaceState(snap(),'',hashNow()); }catch(e){}
+});
 addEventListener('popstate',e=>{
   const box=$('install');
   if(box && box.classList.contains('show')){ box.classList.remove('show');
