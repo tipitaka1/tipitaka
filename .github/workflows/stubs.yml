@@ -1,0 +1,35 @@
+name: 경별 미리보기 파일 만들기
+
+on:
+  push:
+    paths:
+      - 'data.bin'
+      - 'tools/mkstubs.py'
+      - '.github/workflows/stubs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 미리보기 파일 만들기
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: python3 tools/mkstubs.py
+
+      - name: 저장소에 넣기
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A s
+          if git diff --cached --quiet; then
+            echo "바뀐 것이 없다"
+          else
+            git commit -m "경별 미리보기 파일 갱신"
+            git push
+          fi
