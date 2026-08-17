@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#8a6a3a">
+<title>경율논 3장</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#faf7f2; --fg:#2a2622; --dim:#7d7268; --line:#e4dcd0;
+  --accent:#8a6a3a; --card:#fff; --pali:#6b5a44; --hl:#ffe9a8;
+  --fs:17px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#17150f; --fg:#e8e2d6; --dim:#9a9084; --line:#332e26;
+  --accent:#d4ac70; --card:#201d16; --pali:#c2ab86; --hl:#5c4a1e;
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:'Noto Sans KR','Apple SD Gothic Neo',system-ui,-apple-system,sans-serif;
+  font-size:var(--fs);line-height:1.75;overscroll-behavior-y:none;
+}
+header{
+  position:sticky;top:0;z-index:20;background:var(--bg);
+  border-bottom:1px solid var(--line);
+  padding:calc(env(safe-area-inset-top) + 10px) 12px 10px;
+  display:flex;gap:8px;align-items:center;
+}
+header .t{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.95em}
+button{
+  background:none;border:1px solid var(--line);color:var(--fg);
+  border-radius:9px;padding:6px 11px;font-size:.85em;font-family:inherit;cursor:pointer;
+}
+button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.icon{border:none;padding:6px 8px;font-size:1.15em;color:var(--dim)}
+main{padding:8px 12px calc(env(safe-area-inset-bottom) + 72px)}
+ul.nav{list-style:none;margin:0;padding:0}
+ul.nav li{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  margin:7px 0;padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;
+}
+ul.nav li:active{transform:scale(.99)}
+ul.nav .lb{flex:1;min-width:0}
+ul.nav .lb b{display:block;font-weight:600}
+ul.nav .lb small{color:var(--dim);font-size:.78em;display:block;margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ul.nav .ct{color:var(--dim);font-size:.75em;white-space:nowrap}
+ul.nav .ar{color:var(--dim)}
+.crumb{color:var(--dim);font-size:.78em;padding:2px 2px 8px;line-height:1.5}
+.crumb span{cursor:pointer}
+.crumb span:not(:last-child)::after{content:' › ';color:var(--line)}
+/* 본문 */
+article{max-width:760px;margin:0 auto}
+article h1{font-size:1.35em;line-height:1.4;margin:.2em 0 .1em}
+article h2{font-size:1.02em;color:var(--accent);margin:1.7em 0 .5em;
+  padding-bottom:.3em;border-bottom:1px solid var(--line);font-weight:700}
+article .sub{color:var(--dim);font-size:.8em;margin-bottom:1.2em;line-height:1.6}
+article p{margin:.55em 0;white-space:pre-wrap;word-break:keep-all}
+article p.pali{color:var(--pali);font-family:'Gentium Plus','Charis SIL',Georgia,serif;
+  font-style:italic;white-space:pre-wrap;margin:.9em 0 .2em}
+article .mk{color:var(--accent);font-weight:700;font-size:.82em;margin:1.5em 0 .1em;letter-spacing:.03em}
+article a{color:var(--accent)}
+article ul.bul{margin:.6em 0;padding-left:1.1em}
+article ul.bul li{margin:.45em 0;white-space:pre-wrap;word-break:keep-all}
+article ul.bul li::marker{color:var(--dim)}
+article b{font-weight:700}
+article code{background:var(--card);border:1px solid var(--line);border-radius:5px;
+  padding:0 4px;font-size:.85em;font-style:normal}
+.searchbar{display:flex;gap:8px;padding:0 0 10px}
+.searchbar input{
+  flex:1;background:var(--card);border:1px solid var(--line);color:var(--fg);
+  border-radius:10px;padding:11px 13px;font-size:1em;font-family:inherit;outline:none;
+}
+.searchbar input:focus{border-color:var(--accent)}
+mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
+.empty{color:var(--dim);text-align:center;padding:48px 20px;line-height:1.9}
+nav.tab{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;
+  background:var(--bg);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+nav.tab button{
+  flex:1;border:none;border-radius:0;padding:11px 0 9px;color:var(--dim);
+  font-size:.7em;display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+nav.tab button b{font-size:1.5em;font-weight:400;line-height:1}
+nav.tab button.on{color:var(--accent);background:none}
+.fabs{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom) + 74px);
+  display:flex;flex-direction:column;gap:8px;z-index:15}
+.fabs button{
+  width:44px;height:44px;border-radius:50%;background:var(--card);
+  box-shadow:0 2px 10px rgba(0,0,0,.16);font-size:1.15em;padding:0;
+}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:14px;background:var(--bg);z-index:99;color:var(--dim);
+  padding:0 40px;text-align:center}
+#loading b{font-size:1.3em;color:var(--fg);font-weight:600}
+#loading .bar{width:190px;max-width:70vw;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+#loading .bar i{display:block;height:100%;width:0;background:var(--accent);
+  border-radius:2px;transition:width .18s}
+/* 홈 화면에 추가 안내 */
+#install{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.42);
+  display:none;align-items:flex-end}
+#install.show{display:flex}
+#install .ib{background:var(--bg);width:100%;border-radius:18px 18px 0 0;
+  padding:22px 20px calc(env(safe-area-inset-bottom) + 20px);
+  box-shadow:0 -4px 24px rgba(0,0,0,.2)}
+#install .it{font-weight:700;font-size:1.05em;margin-bottom:6px}
+#install .id{color:var(--dim);font-size:.85em;line-height:1.7}
+#install .ig{display:flex;gap:9px;margin-top:16px}
+#install .ig button{flex:1;padding:12px 0;font-size:.95em;border-radius:11px}
+#install ol{margin:10px 0 0;padding-left:1.3em;color:var(--fg);font-size:.88em;line-height:2}
+</style>
+</head>
+<body>
+<div id="loading">
+  <b>경율논 3장</b>
+  <span id="lmsg">자료를 펴는 중…</span>
+  <div class="bar"><i id="lbar"></i></div>
+</div>
+
+<div id="install">
+  <div class="ib">
+    <div class="it">홈 화면에 두고 쓰시겠습니까?</div>
+    <div class="id">한 번 넣어 두면 인터넷 없이도 열립니다.</div>
+    <div class="ig"><button id="ino">나중에</button><button id="iyes" class="on">홈 화면에 추가</button></div>
+  </div>
+</div>
+
+<header>
+  <button class="icon" id="back" style="display:none">‹</button>
+  <div class="t" id="title">경율논 3장</div>
+  <button class="icon" id="star" style="display:none">☆</button>
+  <button class="icon" id="fontm">A－</button>
+  <button class="icon" id="fontp">A＋</button>
+</header>
+
+<main id="main"></main>
+
+<div class="fabs" id="fabs" style="display:none">
+  <button id="mode" title="팔리·한글 보기">⇄</button>
+  <button id="top" title="맨 위로">↑</button>
+</div>
+
+<nav class="tab">
+  <button data-tab="tree" class="on"><b>☰</b>차례</button>
+  <button data-tab="find"><b>⌕</b>찾기</button>
+  <button data-tab="star"><b>★</b>즐겨찾기</button>
+  <button data-tab="recent"><b>↺</b>최근</button>
+</nav>
+
+<script>
+async function getData(){
+  const r = await fetch('data.bin');
+  if(!r.ok) throw new Error('data.bin ' + r.status);
+  const tot = +(r.headers.get('content-length') || 2820877);
+  const rd = r.body && r.body.getReader();
+  if(!rd) return new Uint8Array(await r.arrayBuffer());
+  const parts = []; let got = 0;
+  for(;;){
+    const {done, value} = await rd.read();
+    if(done) break;
+    parts.push(value); got += value.length;
+    prog(Math.min(90, got / tot * 90), '자료 받는 중 ' + Math.round(got/tot*100) + '%');
+  }
+  const out = new Uint8Array(got); let o = 0;
+  for(const p of parts){ out.set(p, o); o += p.length; }
+  return out;
+}
+</script>
+<script>
+'use strict';
+let D=null, path=[], cur=null, tab='tree', mode=0;   // mode 0 둘다 1 한글만 2 팔리만
+
+/* ── 저장 ─────────────────────────────── */
+const S={
+  get(k,f){ try{ return JSON.parse(localStorage.getItem('kyl3_'+k)) ?? f }catch(e){ return f } },
+  set(k,v){ try{ localStorage.setItem('kyl3_'+k,JSON.stringify(v)) }catch(e){} }
+};
+let stars=S.get('stars',[]), recent=S.get('recent',[]), fs=S.get('fs',17);
+document.documentElement.style.setProperty('--fs',fs+'px');
+
+/* ── 자료 펴기 ─────────────────────────── */
+const prog=(p,m)=>{ const b=document.getElementById('lbar'), s=document.getElementById('lmsg');
+  if(b) b.style.width=p+'%'; if(s&&m) s.textContent=m; };
+async function unzip(bin){
+  // 서버가 이미 풀어서 보냈으면(Content-Encoding) 그대로 쓴다
+  if(!(bin[0]===0x1f && bin[1]===0x8b)) return new TextDecoder().decode(bin);
+  if('DecompressionStream' in window){
+    const st=new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return await new Response(st).text();
+  }
+  throw new Error('이 브라우저는 압축을 풀지 못합니다');
+}
+async function boot(){
+  try{
+    const bin=await getData();
+    prog(92,'펴는 중…');
+    D=JSON.parse(await unzip(bin));
+  }catch(e){
+    prog(100,'자료를 읽지 못했습니다 — '+e.message); return;
+  }
+  const L=document.getElementById('loading'); if(L) L.remove();
+  render(); askInstall();
+}
+
+/* ── 마크다운 → 화면 ───────────────────── */
+const PALI=/[āīūṃṅñṭḍṇḷ]|(?:^|\s)(?:ti|ca|ce|na|hi|so|me|te|vā)(?:[,;.’]|$)/;
+function isPali(l){
+  if(/[가-힣]/.test(l)) return false;
+  return /[a-zA-Zāīūṃṅñṭḍṇḷ]/.test(l);
+}
+function md2html(src){
+  const out=[]; const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  for(const blk of src.split(/\n\s*\n/)){
+    const b=blk.trim(); if(!b) continue;
+    if(/^# /.test(b)){ out.push('<h1>'+esc(b.slice(2))+'</h1>'); continue; }
+    if(/^#{2,4} /.test(b)){ out.push('<h2>'+esc(b.replace(/^#+ /,''))+'</h2>'); continue; }
+    if(/^§/.test(b) && b.split('\n').length===1){ out.push('<div class="mk">'+esc(b)+'</div>'); continue; }
+    const lines=b.split('\n');
+    const pali=lines.every(isPali);
+    if(pali){ if(mode!==1) out.push('<p class="pali">'+esc(b)+'</p>'); continue; }
+    if(mode===2) continue;
+    const ink=t=>esc(t)
+      .replace(/\[\[([^\]|]+?)\]\]/g,(m,x)=>'<a href="#" data-link="'+x+'">'+x+'</a>')
+      .replace(/`([^`]+)`/g,'<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+    if(/^[-*] /.test(lines[0])){                 // 목록 — 들여쓴 줄은 앞 항목에 붙인다
+      const items=[];
+      for(const l of lines){
+        if(/^[-*] /.test(l)) items.push(l.replace(/^[-*] /,''));
+        else if(items.length) items[items.length-1]+='\n'+l.trim();
+      }
+      out.push('<ul class="bul">'+items.map(t=>'<li>'+ink(t)+'</li>').join('')+'</ul>');
+      continue;
+    }
+    out.push('<p>'+ink(b)+'</p>');
+  }
+  return out.join('');
+}
+
+/* ── 화면 ─────────────────────────────── */
+const $=id=>document.getElementById(id);
+const M=$('main');
+
+function render(){
+  $('star').style.display = cur?'':'none';
+  $('fabs').style.display = cur?'flex':'none';
+  $('back').style.display = (cur||path.length)?'':'none';
+  if(cur) return viewDoc();
+  if(tab==='find')   return viewFind();
+  if(tab==='star')   return viewList(stars,'즐겨찾기가 비어 있습니다.\n경을 열고 오른쪽 위 ☆ 를 누르세요.');
+  if(tab==='recent') return viewList(recent,'최근에 본 경이 없습니다.');
+  return viewTree();
+}
+
+function viewTree(){
+  const key = path.length? path[path.length-1] : null;
+  const kids = key? D.nodes[key].k : D.roots;
+  const docs = key? D.nodes[key].d : [];
+  $('title').textContent = key? D.nodes[key].l : '경율논 3장';
+  let h='';
+  if(path.length){
+    h+='<div class="crumb"><span data-up="-1">전체</span>';
+    path.forEach((p,i)=>h+='<span data-up="'+i+'">'+D.nodes[p].l+'</span>');
+    h+='</div>';
+  }
+  h+='<ul class="nav">';
+  for(const k of kids){
+    const n=D.nodes[k];
+    h+='<li data-dir="'+k+'"><div class="lb"><b>'+n.l+'</b></div>'
+      +'<span class="ct">'+n.n.toLocaleString()+'</span><span class="ar">›</span></li>';
+  }
+  for(const r of docs){
+    const d=D.docs[r];
+    h+='<li data-doc="'+r+'"><div class="lb"><b>'+d.t+'</b>'
+      +(d.p?'<small>'+d.p+'</small>':'')+'</div><span class="ar">›</span></li>';
+  }
+  h+='</ul>';
+  if(!kids.length && !docs.length) h='<div class="empty">비어 있습니다.</div>';
+  M.innerHTML=h; scrollTo(0,0);
+}
+
+function viewList(arr,msg){
+  $('title').textContent = tab==='star'?'즐겨찾기':'최근 본 경';
+  const ok=arr.filter(r=>D.docs[r]);
+  if(!ok.length){ M.innerHTML='<div class="empty">'+msg.replace(/\n/g,'<br>')+'</div>'; return; }
+  M.innerHTML='<ul class="nav">'+ok.map(r=>{
+    const d=D.docs[r];
+    return '<li data-doc="'+r+'"><div class="lb"><b>'+d.t+'</b><small>'+(d.s||d.p)+'</small></div><span class="ar">›</span></li>';
+  }).join('')+'</ul>';
+  scrollTo(0,0);
+}
+
+let q='';
+function viewFind(){
+  $('title').textContent='찾기';
+  M.innerHTML='<div class="searchbar"><input id="q" placeholder="팔리·한글 아무 낱말이나" value="'+q.replace(/"/g,'&quot;')+'"></div><div id="res"></div>';
+  const inp=$('q');
+  inp.oninput=()=>{ q=inp.value; runFind(); };
+  inp.focus(); runFind();
+}
+/* 팔리 진단부호를 벗겨 둔다 — vessantara 로도 Vessantara 를 찾게 */
+let IDX=null;
+const DIA={'ā':'a','ī':'i','ū':'u','ṃ':'m','ṁ':'m','ṅ':'n','ñ':'n','ṭ':'t','ḍ':'d',
+           'ṇ':'n','ḷ':'l','ṣ':'s','ś':'s','ṛ':'r','ē':'e','ō':'o'};
+/* 글자 수가 바뀌지 않게 한 글자씩 바꾼다 — 조각 잘라 낼 자리가 어긋나지 않도록 */
+const flat=s=>s.toLowerCase().replace(/[āīūṃṁṅñṭḍṇḷṣśṛēō]/g,c=>DIA[c]);
+function buildIdx(){
+  IDX={};
+  for(const r in D.docs){ const d=D.docs[r]; IDX[r]=flat(d.t+' '+d.p+' '+d.c); }
+}
+function runFind(){
+  const R=$('res'); if(!R) return;
+  const k=flat(q.trim());
+  if(k.length<2){ R.innerHTML='<div class="empty">두 글자 이상 넣어 주세요.<br>'
+    +D.nfile.toLocaleString()+'편을 통째로 뒤집니다.<br><small>팔리는 진단부호 없이 넣어도 됩니다 — vessantara</small></div>'; return; }
+  if(!IDX) buildIdx();
+  const hits=[];
+  for(const r in D.docs){
+    const i=IDX[r].indexOf(k);
+    if(i<0) continue;
+    const d=D.docs[r], full=d.t+' '+d.p+' '+d.c;
+    const s=Math.max(0,i-18);
+    hits.push([r, full.slice(s,Math.min(full.length,i+130)), i<(d.t+' '+d.p).length?0:1]);
+  }
+  hits.sort((a,b)=>a[2]-b[2]);
+  if(!hits.length){ R.innerHTML='<div class="empty">찾지 못했습니다.</div>'; return; }
+  const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  R.innerHTML='<div class="crumb">'+hits.length.toLocaleString()+'편</div><ul class="nav">'+
+    hits.slice(0,400).map(([r,sn])=>{
+      const d=D.docs[r];
+      // 진단부호를 벗긴 자리에 맞춰 표시
+      let out='', fl=flat(sn), p=0, j;
+      while((j=fl.indexOf(k,p))>=0){ out+=esc(sn.slice(p,j))+'<mark>'+esc(sn.slice(j,j+k.length))+'</mark>'; p=j+k.length; }
+      out+=esc(sn.slice(p));
+      return '<li data-doc="'+r+'"><div class="lb"><b>'+esc(d.t)+'</b><small>'+out+'</small></div></li>';
+    }).join('')+(hits.length>400?'<li style="justify-content:center;color:var(--dim)">앞 400편만 보입니다</li>':'')+'</ul>';
+}
+
+function viewDoc(){
+  const d=D.docs[cur];
+  $('title').textContent=d.t;
+  $('star').textContent = stars.includes(cur)?'★':'☆';
+  M.innerHTML='<article>'+(d.s?'<div class="sub">'+d.s+(d.st?' · '+d.st:'')+'</div>':'')+md2html(d.c)+'</article>';
+  scrollTo(0,0);
+}
+
+/* ── 조작 ─────────────────────────────── */
+function open(r){
+  cur=r;
+  recent=[r].concat(recent.filter(x=>x!==r)).slice(0,60); S.set('recent',recent);
+  render();
+}
+document.addEventListener('click',e=>{
+  const li=e.target.closest('[data-doc]');        if(li){ open(li.dataset.doc); return; }
+  const dr=e.target.closest('[data-dir]');        if(dr){ path.push(dr.dataset.dir); render(); return; }
+  const up=e.target.closest('[data-up]');
+  if(up){ path=path.slice(0,+up.dataset.up+1); render(); return; }
+  const lk=e.target.closest('[data-link]');
+  if(lk){ e.preventDefault();
+    const n=lk.dataset.link;
+    for(const r in D.docs) if(D.docs[r].n===n){ open(r); return; }
+    return; }
+});
+$('back').onclick=()=>{
+  if(cur){ cur=null; render(); return; }
+  if(path.length){ path.pop(); render(); }
+};
+$('star').onclick=()=>{
+  if(!cur) return;
+  stars = stars.includes(cur)? stars.filter(x=>x!==cur) : [cur].concat(stars);
+  S.set('stars',stars); $('star').textContent=stars.includes(cur)?'★':'☆';
+};
+$('mode').onclick=()=>{ mode=(mode+1)%3; viewDoc();
+  $('mode').textContent=['⇄','한','P'][mode]; };
+$('top').onclick=()=>scrollTo({top:0,behavior:'smooth'});
+$('fontp').onclick=()=>setFs(Math.min(26,fs+1));
+$('fontm').onclick=()=>setFs(Math.max(13,fs-1));
+function setFs(v){ fs=v; S.set('fs',v); document.documentElement.style.setProperty('--fs',v+'px'); }
+document.querySelectorAll('nav.tab button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav.tab button').forEach(x=>x.classList.toggle('on',x===b));
+  tab=b.dataset.tab; cur=null; if(tab==='tree') {} render();
+});
+addEventListener('popstate',()=>{ $('back').click(); });
+
+/* ── 홈 화면에 추가 ─────────────────────── */
+let defer=null;
+addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); defer=e; });
+const standalone=()=>matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+function askInstall(){
+  if(standalone() || S.get('noask',0)) return;
+  const ios=/iP(hone|ad|od)/.test(navigator.userAgent);
+  if(!defer && !ios) return;                       // 크롬이 아직 준비가 안 됐으면 넘어간다
+  const box=$('install');
+  if(ios) box.querySelector('.id').innerHTML=
+    '사파리 아래쪽 공유 단추를 누르고<ol><li>「홈 화면에 추가」를 고르세요</li></ol>';
+  if(ios) $('iyes').textContent='알겠습니다';
+  setTimeout(()=>box.classList.add('show'), 1200);
+}
+$('ino').onclick=()=>{ S.set('noask',1); $('install').classList.remove('show'); };
+$('iyes').onclick=async()=>{
+  $('install').classList.remove('show');
+  if(defer){ defer.prompt(); const r=await defer.userChoice; defer=null;
+             if(r.outcome!=='accepted') S.set('noask',0); else S.set('noask',1); }
+  else S.set('noask',1);
+};
+
+boot();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
