@@ -222,7 +222,7 @@ nav.tab button.on{color:var(--accent);background:none}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 7475883);
+  const tot = +(r.headers.get('content-length') || 13407715);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
