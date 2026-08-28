@@ -101,6 +101,16 @@ article h2{font-size:1.02em;color:var(--accent);margin:1.7em 0 .5em;
 article .sub{color:var(--dim);font-size:.78em;margin:.1em 0 1.4em;line-height:1.6}
 article h1+.sub{margin-top:.3em}
 article p{margin:.55em 0;white-space:pre-wrap;word-break:keep-all;font-weight:var(--fw)}
+.mkin{color:var(--dim);font-size:.74em;font-weight:400;letter-spacing:.02em;
+  vertical-align:.15em;margin-right:.15em;user-select:none}
+pre.tbl{overflow-x:auto;font-size:.82em;line-height:1.5;color:var(--dim);
+  background:var(--card);padding:8px 10px;border-radius:6px;border:1px solid var(--line)}
+details.cal{margin:14px 0;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+details.cal>summary{cursor:pointer;color:var(--dim);font-size:.85em;padding:2px 0}
+details.cal[open]>summary{margin-bottom:6px;border-bottom:1px solid var(--line)}
+nav.rel{display:flex;flex-wrap:wrap;gap:6px;margin:20px 0 4px}
+nav.rel a{font-size:.8em;padding:4px 10px;border:1px solid var(--line);
+  border-radius:14px;color:var(--accent);text-decoration:none}
 article p.pali{color:var(--pali);font-family:PALI,'Gentium Plus','Charis SIL',Georgia,serif;
   font-style:italic;white-space:pre-wrap;margin:.9em 0 .2em}
 article .mk{color:var(--accent);font-weight:700;font-size:.82em;margin:1.5em 0 .1em;letter-spacing:.03em}
@@ -222,7 +232,7 @@ nav.tab button.on{color:var(--accent);background:none}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 13407715);
+  const tot = +(r.headers.get('content-length') || 13408628);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
@@ -247,7 +257,7 @@ const S={
   set(k,v){ try{ localStorage.setItem('kyl3_'+k,JSON.stringify(v)) }catch(e){} }
 };
 let stars=S.get('stars',[]), recent=S.get('recent',[]), hits=S.get('hits',{});
-const DEF={fs:15, fw:700, lh:1.75, ff:'KR', theme:'dark', marks:1, mode:0, den:2, code:1, plink:1};
+const DEF={fs:15, fw:700, lh:1.75, ff:'KR', theme:'dark', marks:1, mode:0, den:2, code:1, plink:1, dlg:1, hits:0};
 const _sv=S.get('cfg',{});
 let C=Object.assign({}, DEF, _sv);
 if(_sv.v!==2){ C.plink=1; C.v=2; }      // 쓰던 기기도 미리보기 주소로 한 번 맞춘다
@@ -295,23 +305,69 @@ async function boot(){
 }
 
 /* ── 마크다운 → 화면 ───────────────────── */
-const PALI=/[āīūṃṅñṭḍṇḷ]|(?:^|\s)(?:ti|ca|ce|na|hi|so|me|te|vā)(?:[,;.’]|$)/;
 function isPali(l){
   if(/[가-힣]/.test(l)) return false;
   return /[a-zA-Zāīūṃṅñṭḍṇḷ]/.test(l);
 }
+/* 표지(§1 · §1-게송2)가 본문과 한 줄에 붙어 있는 꼴을 가른다.
+   산문은 「§1 Evaṃ me…」, 게송은 「§1-게송1」 혼자 — 둘 다 받아야 한다. */
+const MKRE=/^(§\S+)[ \t]+(.*)$/;
+/* 대화 — 새 인용이 열리는 자리에서 줄을 나눈다.
+   여는 부호 셋: " “ 「   (팔리의 ‘ ’ 는 건드리지 않는다) */
+const DLG=/(?<=[.?!…][”"』」]?)[ \t]+(?=[“"「])/g;
+const QOPEN=/[“"「]/g;
+/* 문서 첫머리의 길잡이 줄 — 목록·용어는 앱에 이미 있으니 버리고 나머지는 단추로 */
+const NAVRE=/^(목록|차례) → /;
+let navLinks=[];
+
 function md2html(src,h1){
-  const out=[]; const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const out=[]; navLinks=[];
+  const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  let pend='';                               // 앞 문단에서 넘어온 표지
+  const mk=t=>(C.marks&&t)?'<span class="mkin">'+esc(t)+'</span> ':'';
   for(const blk of src.split(/\n\s*\n/)){
-    const b=blk.trim(); if(!b) continue;
+    let b=blk.trim(); if(!b) continue;
     if(/^# /.test(b)){ out.push('<h1>'+esc(h1||b.slice(2))+'</h1>'); continue; }
     if(/^#{2,4} /.test(b)){ out.push('<h2>'+esc(b.replace(/^#+ /,''))+'</h2>'); continue; }
-    if(/^§/.test(b) && b.split('\n').length===1){ out.push('<div class="mk">'+esc(b)+'</div>'); continue; }
-    const lines=b.split('\n');
+    if(/^>/.test(b)){                         // 콜아웃 — 접었다 폈다 하는 상자로
+      let inner=b.split('\n').map(l=>l.replace(/^>\s?/,'')).join('\n');
+      let cap='펼치기';
+      const cm=inner.match(/^\[!(\w+)\]-?\s*(.*)/);
+      if(cm){ cap=cm[2]||cap; inner=inner.slice(inner.indexOf('\n')+1); }
+      out.push('<details class="cal"><summary>'+esc(cap)+'</summary>'
+               +md2html(inner)+'</details>');
+      continue;
+    }
+    let lines=b.split('\n');
+    /* 첫 줄에서 표지를 떼어낸다 */
+    let mark='';
+    const m=lines[0].match(MKRE);
+    if(m){ mark=m[1]; lines[0]=m[2]; b=lines.join('\n'); }
+    else if(/^§\S+$/.test(lines[0]) && lines.length===1){ pend=lines[0]; continue; }
+    if(!b.trim()){ if(mark) pend=mark; continue; }
+    const tag=mark||pend;
+    /* 길잡이 줄 */
+    if(NAVRE.test(b) && lines.length===1){
+      for(const seg of b.split(' · ')){
+        const mm=seg.match(/^(.+?) → \[\[([^\]|]+?)\]\]/);
+        if(!mm) continue;
+        const k=mm[1].trim();
+        if(k==='목록'||k==='차례'||k==='용어') continue;
+        navLinks.push([k,mm[2]]);
+      }
+      continue;
+    }
     const pali=lines.every(isPali);
-    if(pali){ if(mode!==1) out.push('<p class="pali">'+esc(b)+'</p>'); continue; }
-    if(mode===2) continue;
+    if(pali){
+      pend='';
+      if(mode!==1) out.push('<p class="pali">'+mk(tag)+esc(b)+'</p>');
+      else if(tag) pend=tag;               // 한글만 — 표지를 다음 한글 문단으로 넘긴다
+      continue;
+    }
+    if(mode===2){ if(tag) pend=tag; continue; }
+    pend='';
     const ink=t=>esc(t)
+      .replace(/\[\[([^\]|]+?)\|([^\]]+?)\]\]/g,(m,x,y)=>'<a href="#" data-link="'+x+'">'+y+'</a>')
       .replace(/\[\[([^\]|]+?)\]\]/g,(m,x)=>'<a href="#" data-link="'+x+'">'+x+'</a>')
       .replace(/`([^`]+)`/g,'<code>$1</code>')
       .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
@@ -324,7 +380,15 @@ function md2html(src,h1){
       out.push('<ul class="bul">'+items.map(t=>'<li>'+ink(t)+'</li>').join('')+'</ul>');
       continue;
     }
-    out.push('<p>'+ink(b)+'</p>');
+    if(/^\|/.test(lines[0])){                    // 표는 그대로 흘린다
+      out.push('<pre class="tbl">'+esc(b)+'</pre>'); continue;
+    }
+    let h=ink(b);
+    if(C.dlg){                                   // 대화 줄나눔
+      const nq=(b.match(QOPEN)||[]).length;
+      if(nq>=2) h=h.replace(DLG,'<br>');
+    }
+    out.push('<p>'+mk(tag)+h+'</p>');
   }
   return out.join('');
 }
@@ -440,6 +504,7 @@ const SEG=[
  ['plink','공유 주소','미리보기는 s/ 파일을 올린 뒤에',[[0,'짧게 (#)'],[1,'미리보기 (s/)']]],
  ['보기'],
  ['mode','대역','',           [[0,'팔리와 한글'],[1,'한글만'],[2,'팔리만']]],
+ ['dlg','대화 줄나눔','',      [[1,'나눔'],[0,'붙임']]],
  ['marks','§ 표시','게송·산문 번호',[[1,'보임'],[0,'숨김']]],
  ['theme','화면','',          [['auto','기기 설정'],['light','밝게'],['dark','어둡게']]],
 ];
@@ -496,14 +561,19 @@ async function checkUpdate(){
 }
 function viewDoc(){
   const d=D.docs[cur];
-  const DT=disp(cur);
+  const DT=disp(cur);          // 상단 바 — 코드까지 (어디인지 알아야 하니)
+  const H1=d.t||DT;            // 본문 큰 제목 — 한글제목만
   $('title').textContent=DT;
   $('star').textContent = stars.includes(cur)?'★':'☆';
   const n=hits[cur]||0;
-  let body=md2html(d.c, DT);
-  if(!/^<h1>/.test(body)) body='<h1>'+DT+'</h1>'+body;      // 큰 제목이 없던 파일도 붙인다
-  const sub='<div class="sub">'+(d.s||'')+(d.st?' · '+d.st:'')+(n?' · 조회 '+n:'')+'</div>';
+  let body=md2html(d.c, H1);
+  if(!/^<h1>/.test(body)) body='<h1>'+H1+'</h1>'+body;      // 큰 제목이 없던 파일도 붙인다
+  const sub='<div class="sub">'+(d.s||'')+(C.hits&&n?' · 조회 '+n:'')+'</div>';
   body=body.replace(/(<\/h1>)/, '$1'+sub);                   // 큰 제목 바로 아래에
+  if(navLinks.length){                                        // 길잡이 줄을 단추로 되살린다
+    body+='<nav class="rel">'+navLinks.map(x=>
+      '<a href="#" data-link="'+x[1]+'">'+x[0]+' →</a>').join('')+'</nav>';
+  }
   M.innerHTML='<article>'+body+'</article>';
   scrollTo(0,0);
 }
