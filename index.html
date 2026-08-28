@@ -139,6 +139,16 @@ a.fn{font-size:.62em;color:var(--accent);vertical-align:super;margin-left:4px;
 a.fnb{display:inline-block;min-width:1.3em;font-size:.72em;color:var(--accent);
   font-weight:700;cursor:pointer;text-decoration:none}
 .flash{background:var(--hl);border-radius:5px;transition:background .5s}
+#fopt{padding:2px 2px 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:5px 0}
+.chips small{color:var(--dim);font-size:.68em;margin-right:1px}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;
+  padding:4px 11px;font-size:.76em;color:var(--dim);cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#17150f;font-weight:700}
+.chips.sub .chip{font-size:.72em;padding:3px 9px;opacity:.9}
+#res .lb small{white-space:normal;display:block;margin-top:3px;line-height:1.6}
+#res mark{background:var(--hl);color:var(--fg);border-radius:3px;padding:0 1px}
+#res li{align-items:flex-start}
 .crumb{color:var(--dim);font-size:.78em;padding:2px 2px 8px;line-height:1.5}
 .crumb span{cursor:pointer}
 .crumb span:not(:last-child)::after{content:' › ';color:var(--line)}
@@ -367,7 +377,6 @@ html.picking #toast{bottom:calc(env(safe-area-inset-bottom) + 190px)}
 
 <nav class="tab">
   <button data-act="home" class="on"><b>⌂</b>홈</button>
-  <button data-act="up"><b>↰</b>뒤로</button>
   <button data-tab="find"><b>⌕</b>찾기</button>
   <button data-tab="set"><b>⚙</b>설정</button>
 </nav>
@@ -376,7 +385,7 @@ html.picking #toast{bottom:calc(env(safe-area-inset-bottom) + 190px)}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 12863128);
+  const tot = +(r.headers.get('content-length') || 13198134);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
@@ -444,7 +453,7 @@ async function boot(){
     recent=[cur].concat(recent.filter(x=>x!==cur)).slice(0,60); S.set('recent',recent);
   }
   render();
-  try{ history.replaceState(snap(),'',hashNow()); }catch(e){}
+  sync();
   askInstall();
 }
 
@@ -569,10 +578,11 @@ const M=$('main');
 
 function render(){
   litTab();
-  $('star').style.display = cur?'':'none';
-  $('fabs').style.display = cur?'flex':'none';
-  if(cur) return viewDoc();
+  const doc = cur && tab==='tree';
+  $('star').style.display = doc?'':'none';
+  $('fabs').style.display = doc?'flex':'none';
   if(tab==='find')   return viewFind();
+  if(doc) return viewDoc();
   if(tab==='set')    return viewSet();
   if(tab==='star')   return viewList(stars,'즐겨찾기가 비어 있습니다.\n경을 열고 오른쪽 위 ☆ 를 누르세요.');
   if(tab==='recent') return viewList(recent,'최근에 본 경이 없습니다.');
@@ -727,15 +737,13 @@ function viewList(arr,msg){
 }
 
 let q='';
-function viewFind(){
-  $('title').textContent='찾기';
-  M.innerHTML='<div class="searchbar"><input id="q" placeholder="팔리·한글 아무 낱말이나" value="'+q.replace(/"/g,'&quot;')+'"></div><div id="res"></div>';
-  const inp=$('q');
-  inp.oninput=()=>{ q=inp.value; runFind(); };
-  inp.focus(); runFind();
-}
+/* ── 찾기 ──────────────────────────────────
+   범위는 찾기를 누른 자리를 따른다. 칩으로 넓히고 좁힌다. */
+let FQ={seg:null, doc:null, how:'all', lang:'both'};
+const HOW=[['all','모두'],['near','가까이'],['exact','그대로']];
+const LANG=[['both','둘 다'],['ko','한글만'],['pa','팔리만']];
 /* 팔리 진단부호를 벗겨 둔다 — vessantara 로도 Vessantara 를 찾게 */
-let IDX=null;
+let IDX=null, PARA=null;
 const DIA={'ā':'a','ī':'i','ū':'u','ṃ':'m','ṁ':'m','ṅ':'n','ñ':'n','ṭ':'t','ḍ':'d',
            'ṇ':'n','ḷ':'l','ṣ':'s','ś':'s','ṛ':'r','ē':'e','ō':'o'};
 /* 글자 수가 바뀌지 않게 한 글자씩 바꾼다 — 조각 잘라 낼 자리가 어긋나지 않도록 */
@@ -744,33 +752,160 @@ function buildIdx(){
   IDX={};
   for(const r in D.docs){ const d=D.docs[r]; IDX[r]=flat(d.t+' '+d.p+' '+d.c); }
 }
+function paras(r){
+  if(!PARA) PARA={};
+  if(!PARA[r]){
+    const d=D.docs[r];
+    PARA[r]=(d.t+' '+d.p+'\n\n'+d.c).split(/\n\s*\n/)
+      .map(x=>x.replace(/^>\s?/gm,'').replace(/\[!\w+\]-?\s*/g,'')
+              .replace(/\*\*/g,'').replace(/^#{1,4}\s*/gm,'')
+              .replace(/\n+/g,' ').trim())
+      .filter(Boolean);
+  }
+  return PARA[r];
+}
+/* 찾기를 열 때 지금 자리를 범위로 삼는다 */
+function findEnter(){
+  FQ.doc = cur || null;
+  FQ.seg = cur? cur.split('/').slice(0,-1).join('/')
+              : (path.length? path[path.length-1] : null);
+}
+const segLabel=k=>k? k.split('/').map(x=>label? label(x):x).join(' › ') : '전체';
+function nodeLabel(k){ return (D.nodes[k]&&D.nodes[k].l)||k.split('/').pop(); }
+function segName(k){ return k? k.split('/').map((_,i,a)=>nodeLabel(a.slice(0,i+1).join('/'))).join(' › ') : '전체'; }
+/* 범위 칩 — 지금 범위의 형제 갈래를 늘어놓는다 */
+function scopeChips(){
+  let h='';
+  if(FQ.doc){
+    h+='<div class="chips"><span class="chip on">이 편 안에서</span>'
+      +'<span class="chip" data-sc="'+esc2(FQ.doc.split('/').slice(0,-1).join('/'))+'">그 갈래로</span>'
+      +'<span class="chip" data-sc="">전체로</span></div>';
+    return h;
+  }
+  const par = FQ.seg? FQ.seg.split('/').slice(0,-1).join('/') : null;
+  const sibs = FQ.seg? ((par&&D.nodes[par])? D.nodes[par].k : D.roots) : D.roots;
+  h+='<div class="chips">';
+  h+='<span class="chip'+(FQ.seg?'':' on')+'" data-sc="">전체</span>';
+  for(const k of sibs) h+='<span class="chip'+(k===FQ.seg?' on':'')+'" data-sc="'+esc2(k)+'">'+esc2(nodeLabel(k))+'</span>';
+  h+='</div>';
+  if(FQ.seg && D.nodes[FQ.seg] && D.nodes[FQ.seg].k.length)
+    h+='<div class="chips sub">'+D.nodes[FQ.seg].k.map(k=>
+        '<span class="chip" data-sc="'+esc2(k)+'">'+esc2(nodeLabel(k))+'</span>').join('')+'</div>';
+  return h;
+}
+const esc2=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function viewFind(){
+  $('title').textContent='찾기';
+  M.innerHTML='<div class="searchbar"><input id="q" placeholder="팔리·한글 아무 낱말이나" value="'+q.replace(/"/g,'&quot;')+'"></div>'
+    +'<div id="fopt"></div><div id="res"></div>';
+  drawOpt();
+  const inp=$('q');
+  inp.oninput=()=>{ q=inp.value; runFind(); };
+  inp.focus(); runFind();
+}
+function drawOpt(){
+  const O=$('fopt'); if(!O) return;
+  O.innerHTML=scopeChips()
+    +'<div class="chips"><small>찾는 법</small>'
+    +HOW.map(([k,v])=>'<span class="chip'+(FQ.how===k?' on':'')+'" data-how="'+k+'">'+v+'</span>').join('')
+    +'<small>글</small>'
+    +LANG.map(([k,v])=>'<span class="chip'+(FQ.lang===k?' on':'')+'" data-lang="'+k+'">'+v+'</span>').join('')
+    +'</div>';
+}
+document.addEventListener('click',e=>{
+  const c=e.target.closest('#fopt .chip'); if(!c) return;
+  if(c.dataset.sc!==undefined){ FQ.doc=null; FQ.seg=c.dataset.sc||null; }
+  else if(c.dataset.how) FQ.how=c.dataset.how;
+  else if(c.dataset.lang) FQ.lang=c.dataset.lang;
+  drawOpt(); runFind();
+},true);
+/* 낱말 가르기 — "붙은 말" 과 -빼기 를 알아본다 */
+function terms(raw){
+  const pos=[], neg=[]; let ph=null;
+  const m=raw.match(/^\s*"([^"]+)"\s*$/);
+  if(m) return {pos:[flat(m[1])], neg:[], phrase:true};
+  for(const w of raw.split(/\s+/)){
+    if(!w) continue;
+    if(w[0]==='-'&&w.length>1) neg.push(flat(w.slice(1)));
+    else pos.push(flat(w));
+  }
+  return {pos, neg, phrase:false};
+}
+const hasKo=s=>/[가-힣]/.test(s);
+function langOk(t){ return FQ.lang==='both' || (FQ.lang==='ko'? hasKo(t) : !hasKo(t)); }
 function runFind(){
   const R=$('res'); if(!R) return;
-  const k=flat(q.trim());
-  if(k.length<2){ R.innerHTML='<div class="empty">두 글자 이상 넣어 주세요.<br>'
-    +D.nfile.toLocaleString()+'편을 통째로 뒤집니다.<br><small>팔리는 진단부호 없이 넣어도 됩니다 — vessantara</small></div>'; return; }
+  const raw=q.trim();
+  const {pos,neg,phrase}=terms(raw);
+  const scopeTxt = FQ.doc? '이 편' : segName(FQ.seg);
+  if(!pos.length || pos.join('').length<2){
+    R.innerHTML='<div class="empty"><b>'+esc2(scopeTxt)+'</b>에서 찾습니다.<br>두 글자 이상 넣어 주세요.'
+      +'<br><small>낱말 둘을 띄어 쓰면 둘 다 있는 곳 · <b>"붙은 말"</b> 은 그대로 · <b>-낱말</b> 은 빼기'
+      +'<br>팔리는 진단부호 없이 넣어도 됩니다 — vessantara</small></div>'; return;
+  }
   if(!IDX) buildIdx();
+  const inScope = r => FQ.doc? (r===FQ.doc) : (!FQ.seg || r===FQ.seg || r.indexOf(FQ.seg+'/')===0);
+  const want = (FQ.how==='exact'||phrase)? 'exact' : FQ.how;
+  const key = pos.join(' ');
   const hits=[];
   for(const r in D.docs){
-    const i=IDX[r].indexOf(k);
-    if(i<0) continue;
-    const d=D.docs[r], full=d.t+' '+d.p+' '+d.c;
-    const s=Math.max(0,i-18);
-    hits.push([r, full.slice(s,Math.min(full.length,i+130)), i<(d.t+' '+d.p).length?0:1]);
+    if(!inScope(r)) continue;
+    const fx=IDX[r];
+    let ok=true;
+    for(const t of pos) if(fx.indexOf(t)<0){ ok=false; break; }
+    if(!ok) continue;
+    for(const t of neg) if(fx.indexOf(t)>=0){ ok=false; break; }
+    if(!ok) continue;
+    // 문단을 훑어 조각을 만든다
+    const ps=paras(r), sn=[];
+    for(const t of ps){
+      const ft=flat(t);
+      let good;
+      if(want==='exact') good = ft.indexOf(key)>=0;
+      else if(want==='near') good = pos.every(x=>ft.indexOf(x)>=0);
+      else good = pos.some(x=>ft.indexOf(x)>=0);
+      if(!good || !langOk(t)) continue;
+      sn.push(t);
+      if(sn.length>=3) break;
+    }
+    if(!sn.length) continue;
+    if((want==='near'||want==='exact') && !sn.length) continue;
+    hits.push([r,sn]);
   }
-  hits.sort((a,b)=>a[2]-b[2]);
-  if(!hits.length){ R.innerHTML='<div class="empty">찾지 못했습니다.</div>'; return; }
-  const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  R.innerHTML='<div class="crumb">'+hits.length.toLocaleString()+'편</div><ul class="nav">'+
-    hits.slice(0,400).map(([r,sn])=>{
-      const d=D.docs[r];
-      // 진단부호를 벗긴 자리에 맞춰 표시
-      let out='', fl=flat(sn), p=0, j;
-      while((j=fl.indexOf(k,p))>=0){ out+=esc(sn.slice(p,j))+'<mark>'+esc(sn.slice(j,j+k.length))+'</mark>'; p=j+k.length; }
-      out+=esc(sn.slice(p));
-      return '<li data-doc="'+r+'"><div class="lb"><b>'+esc(disp(r))+'</b><small>'+out+'</small></div></li>';
-    }).join('')+(hits.length>400?'<li style="justify-content:center;color:var(--dim)">앞 400편만 보입니다</li>':'')+'</ul>';
+  if(!hits.length){ R.innerHTML='<div class="empty"><b>'+esc2(scopeTxt)+'</b>에서 찾지 못했습니다.<br>'
+    +'<small>칩을 눌러 범위를 넓혀 보세요.</small></div>'; return; }
+  const cut=(t)=>{                       // 처음 걸린 자리 앞뒤로 잘라 낸다
+    const ft=flat(t); let i=-1;
+    for(const x of (want==='exact'?[key]:pos)){ const j=ft.indexOf(x); if(j>=0&&(i<0||j<i)) i=j; }
+    if(i<0) i=0;
+    const a=Math.max(0,i-40), b=Math.min(t.length,i+120);
+    return (a?'… ':'')+t.slice(a,b)+(b<t.length?' …':'');
+  };
+  const paint=(t)=>{
+    const ft=flat(t); const marks=[];
+    for(const x of (want==='exact'?[key]:pos)){
+      let p=0,j; while((j=ft.indexOf(x,p))>=0){ marks.push([j,j+x.length]); p=j+x.length; }
+    }
+    marks.sort((a,b)=>a[0]-b[0]);
+    let out='', p=0;
+    for(const [a,b] of marks){ if(a<p) continue;
+      out+=esc2(t.slice(p,a))+'<mark>'+esc2(t.slice(a,b))+'</mark>'; p=b; }
+    return out+esc2(t.slice(p));
+  };
+  R.innerHTML='<div class="crumb">'+esc2(scopeTxt)+' · '+hits.length.toLocaleString()+'편</div><ul class="nav">'+
+    hits.slice(0,300).map(([r,sn])=>{
+      return '<li data-doc="'+esc2(r)+'" data-jump="'+esc2(sn[0].slice(0,28))+'">'
+        +'<div class="lb"><b>'+esc2(disp(r))+'</b>'
+        + sn.map(t=>'<small>'+paint(cut(t))+'</small>').join('')
+        +'</div></li>';
+    }).join('')+(hits.length>300?'<li style="justify-content:center;color:var(--dim)">앞 300편만 보입니다</li>':'')+'</ul>';
 }
+/* 결과를 누르면 그 문단으로 뛴다 */
+let JUMP=null;
+document.addEventListener('click',e=>{
+  const li=e.target.closest('#res li[data-jump]'); if(!li) return;
+  JUMP=li.dataset.jump; tab='tree';
+},true);
 
 const SEG=[
  ['ff','본문 서체','',        [['KR','고딕'],['MJ','명조']]],
@@ -893,6 +1028,12 @@ function viewDoc(keep){
   }
   M.innerHTML='<article>'+body+'</article>';
   footnotes(M.querySelector('article'));
+  if(JUMP){ const nd=JUMP; JUMP=null;
+    const t=[...M.querySelectorAll('article p,article h2,article h3')]
+      .find(x=>(x.textContent||'').indexOf(nd.slice(0,20))>=0);
+    if(t) setTimeout(()=>{ scrollTo(0, Math.max(0, scrollY+t.getBoundingClientRect().top-70));
+      t.classList.add('flash'); setTimeout(()=>t.classList.remove('flash'),1400); },30);
+  }
   if(PICK.size){ PICK.clear(); pickRefresh(); }
   if(!keep) scrollTo(0,0);
 }
@@ -900,40 +1041,37 @@ function viewDoc(keep){
 /* ── 조작 ─────────────────────────────── */
 /* 폰의 뒤로가기 단추가 앱 안에서 한 칸씩 물러나게 한다.
    가는 곳마다 history 에 한 칸을 쌓아 두어야 뒤로가기가 앱을 빠져나가지 않는다. */
-const snap=()=>({path:path.slice(), cur, tab, q});
 const hashNow=()=> cur? '#'+idOf(cur) : location.pathname+location.search;
-function push(fn){
-  // 지금 화면의 스크롤 자리를 먼저 갈무리해 둔다 — 돌아왔을 때 그 자리로
-  try{ history.replaceState(Object.assign(snap(),{y:scrollY}),'',hashNow()); }catch(e){}
-  fn();
-  try{ history.pushState(snap(),'',hashNow()); }catch(e){}
-  render();
+/* 폰의 뒤로가기는 「한 칸 위로」다 — 지나온 자취를 되짚지 않는다.
+   자리를 딱 하나만 쟁여 두었다가, 뿌리에 닿으면 쟁이지 않아 그대로 앱을 빠져나가게 한다. */
+const atRoot=()=> !cur && tab==='tree' && !path.length;
+let SPARE=false;
+function sync(){
+  try{ history.replaceState({kyl:1},'',hashNow()); }catch(e){}
+  if(!atRoot() && !SPARE){ try{ history.pushState({kyl:2},'',hashNow()); SPARE=true; }catch(e){} }
 }
-function restore(s){
-  path=(s.path||[]).slice(); cur=s.cur||null; tab=s.tab||'tree'; q=s.q||'';
-  render();
-  try{ history.replaceState(s,'',hashNow()); }catch(e){}
-  if(s.y) setTimeout(()=>scrollTo(0,s.y),0);
-}
+function push(fn){ fn(); render(); sync(); }
 /* 주소창에서 # 뒤만 바꾸면 브라우저는 페이지를 다시 읽지 않는다.
    그때는 hashchange 만 오므로 여기서 받아 그 경을 연다. */
 addEventListener('hashchange',()=>{
   const h=location.hash.replace(/^#/,'');
-  if(!h){ if(cur){ cur=null; render(); } return; }
+  if(!h){ if(cur){ cur=null; render(); sync(); } return; }
   const r=byId(h);
   if(!r){ toast('그런 이름의 경을 찾지 못했습니다'); return; }
   if(r===cur) return;
   cur=r; tab='tree';
   hits[r]=(hits[r]||0)+1; S.set('hits',hits);
   recent=[r].concat(recent.filter(x=>x!==r)).slice(0,60); S.set('recent',recent);
-  render();
-  try{ history.replaceState(snap(),'',hashNow()); }catch(e){}
+  render(); sync();
 });
 addEventListener('popstate',e=>{
+  SPARE=false;
   const box=$('install');
-  if(box && box.classList.contains('show')){ box.classList.remove('show');
-    try{ history.pushState(snap(),''); }catch(err){} return; }
-  if(e.state) restore(e.state);
+  if(box && box.classList.contains('show')){ box.classList.remove('show'); sync(); return; }
+  if(typeof PON!=='undefined' && PON){ pickOff(); sync(); return; }   // 고르기 중이면 그것부터 그만
+  if(atRoot()) return;              // 뿌리에서는 붙잡지 않는다 — 그대로 앱 밖으로
+  goUp(true);                       // 한 칸 위로
+  sync();
 });
 
 function open(r){
@@ -1016,14 +1154,15 @@ function goHome(){
   if(!cur && tab==='tree' && !path.length) return;
   push(()=>{ cur=null; tab='tree'; path=[]; q=''; });
 }
-function goUp(){
+function goUp(raw){
+  const go = raw? (fn=>{ fn(); render(); }) : push;
+  if(tab!=='tree'){ go(()=>{ tab='tree'; }); return; }     // 찾기·설정 → 보던 자리로
   if(cur){                                   // 경을 보는 중 → 그 경이 든 갈래로
     const par=cur.split('/').slice(0,-1).join('/');
-    push(()=>{ cur=null; tab='tree'; path= par&&D.nodes[par]? chain(par):[]; });
+    go(()=>{ cur=null; tab='tree'; path= par&&D.nodes[par]? chain(par):[]; });
     return;
   }
-  if(tab!=='tree'){ push(()=>{ tab='tree'; }); return; }   // 찾기·설정 → 차례로
-  if(path.length) push(()=>{ path.pop(); });
+  if(path.length) go(()=>{ path.pop(); });
 }
 $('star').onclick=()=>{
   if(!cur) return;
@@ -1184,6 +1323,7 @@ function litTab(){
 }
 document.querySelectorAll('nav.tab button').forEach(b=>b.onclick=()=>{
   if(b.dataset.act==='home') return goHome();
+  if(b.dataset.tab==='find') findEnter();
   if(b.dataset.act==='up')   return goUp();
   if(b.dataset.tab===tab && !cur) return;
   push(()=>{ tab=b.dataset.tab; cur=null; });
