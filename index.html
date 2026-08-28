@@ -147,6 +147,8 @@ article blockquote p{margin:6px 0}
 details.cal{margin:14px 0;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
 details.cal>summary{cursor:pointer;color:var(--dim);font-size:.85em;padding:2px 0}
 details.cal[open]>summary{margin-bottom:6px;border-bottom:1px solid var(--line)}
+ul.nav li.idx{border-color:var(--accent)}
+ul.nav li.idx .lb b{color:var(--accent)}
 nav.rel{display:flex;flex-wrap:wrap;gap:6px;margin:20px 0 4px}
 nav.rel a{font-size:.8em;padding:4px 10px;border:1px solid var(--line);
   border-radius:14px;color:var(--accent);text-decoration:none}
@@ -308,7 +310,7 @@ html.picking #toast{bottom:calc(env(safe-area-inset-bottom) + 190px)}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 12819380);
+  const tot = +(r.headers.get('content-length') || 12830899);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
@@ -550,12 +552,19 @@ function viewTree(){
     h+='</div>';
   }
   h+='<ul class="nav den">';
+  /* 「목차 및 개요」는 언제나 맨 위에 — 그 갈래의 길잡이니까 */
+  const IDX=/000_목차/;
+  for(const r of docs.filter(x=>IDX.test(x))){
+    const d=D.docs[r];
+    h+='<li class="idx" data-doc="'+r+'"><div class="lb"><b>'+(d.t||'목차 및 개요')+'</b>'
+      +'<small>이 갈래를 안내합니다</small></div><span class="ar">›</span></li>';
+  }
   for(const k of kids){
     const n=D.nodes[k];
     h+='<li data-dir="'+k+'"><div class="lb"><b>'+n.l+'</b></div>'
       +'<span class="ct">'+n.n.toLocaleString()+'</span><span class="ar">›</span></li>';
   }
-  for(const r of docs){
+  for(const r of docs.filter(x=>!IDX.test(x))){
     const d=D.docs[r];
     h+='<li data-doc="'+r+'"><div class="lb"><b>'+disp(r)+'</b>'
       +(d.p?'<small>'+d.p+'</small>':'')+'</div>'+hit(r)+'<span class="ar">›</span></li>';
