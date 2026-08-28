@@ -90,6 +90,31 @@ html[data-den='4'] ul.den .lb b{font-size:.86em;font-weight:400;
 html[data-den='4'] ul.den .lb small{display:none}
 html[data-den='4'] ul.den .ar{display:none}
 html[data-den='4'] ul.den .hit{padding:0 5px;font-size:.68em}
+/* 경/율/논 바로 아래 — 책 고르는 큰 카드 */
+ul.nav li.bk{display:block;padding:15px 16px 13px;border-radius:14px;margin:10px 0}
+li.bk .bkh{display:flex;align-items:center;gap:12px}
+li.bk .bdg{flex:none;width:54px;height:54px;border-radius:12px;background:var(--bg);
+  border:1px solid var(--line);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;line-height:1.15}
+li.bk .bdg b{font-size:.82em;color:var(--accent);font-weight:700}
+li.bk .bdg small{font-size:.52em;color:var(--dim)}
+li.bk .bkn{flex:1;min-width:0}
+li.bk .bkn b{display:block;font-size:1.2em;font-weight:700;line-height:1.35}
+li.bk .bkn i{display:block;font-size:.74em;color:var(--pali);margin-top:1px}
+li.bk .bkd{font-size:.76em;color:var(--dim);margin-top:9px}
+li.bk .bkm{display:flex;align-items:center;gap:10px;margin-top:10px}
+li.bk .bkm .num{font-size:.74em;color:var(--dim);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+li.bk .bkm .num b{color:var(--fg);font-weight:600}
+li.bk .bar{flex:1;height:7px;background:var(--bg);border:1px solid var(--line);
+  border-radius:4px;overflow:hidden}
+li.bk .bar i{display:block;height:100%;background:var(--accent)}
+/* 빽빽하게 설정에서도 책 카드는 줄이지 않는다 — 최대 일곱 개뿐이니 */
+html[data-den] ul.den li.bk{padding:15px 16px 13px;margin:10px 0;border-radius:14px;
+  background:var(--card);border-width:1px}
+html[data-den] ul.den li.bk .bkn b{font-size:1.2em}
+html[data-den] ul.den li.bk .bkd{display:block;font-size:.76em}
+html[data-den] ul.den li.bk .ar{display:block}
 .crumb{color:var(--dim);font-size:.78em;padding:2px 2px 8px;line-height:1.5}
 .crumb span{cursor:pointer}
 .crumb span:not(:last-child)::after{content:' › ';color:var(--line)}
@@ -325,7 +350,7 @@ html.picking #toast{bottom:calc(env(safe-area-inset-bottom) + 190px)}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 12832400);
+  const tot = +(r.headers.get('content-length') || 12835763);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
@@ -562,6 +587,38 @@ function viewHome(){
   M.innerHTML=h; scrollTo(0,0);
 }
 
+/* 책 낱낱의 얼굴 — 경/율/논 바로 아래 갈래에서만 쓴다.
+   [약어, 한글이름, 로마자, 한역·성격, 편 표기, 팔리 글자수, 비중%, 한 줄] */
+const BOOK={
+'1_정전/1_경장(Sutta)/01_디가(DN)':['DN','디가 니까야','Dīghanikāya','장아함','34편',1079758,9,'긴 경 34편. 세 왁가로 나뉜다'],
+'1_정전/1_경장(Sutta)/02_맛지마(MN)':['MN','맛지마 니까야','Majjhimanikāya','중아함','152편',1846865,15,'중간 길이 152편. 오십 편씩 세 묶음'],
+'1_정전/1_경장(Sutta)/03_상윳따(SN)':['SN','상윳따 니까야','Saṃyuttanikāya','잡아함','56상윳따',1990731,17,'주제로 묶은 56 상윳따 · 1,819경'],
+'1_정전/1_경장(Sutta)/04_앙굿따라(AN)':['AN','앙굿따라 니까야','Aṅguttaranikāya','증일아함','186품',2296095,19,'숫자로 묶은 열한 니빠따 · 1,408경'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)':['KN','쿳다까 니까야','Khuddakanikāya','소부','2,366편',4765291,40,'앞의 넷에 들지 않는 나머지 20책'],
+'1_정전/2_율장(Vinaya)/1_빠라지까(Vin i)':['Vin i','빠라지까','Pārājika','경분별','5편',544435,17,'비구의 바라이·승잔·부정·사타'],
+'1_정전/2_율장(Vinaya)/2_빠찟띠야(Vin ii)':['Vin ii','빠찟띠야','Pācittiya','경분별','11편',626770,20,'바일제부터 멸쟁까지 · 비구니 위방가'],
+'1_정전/2_율장(Vinaya)/3_마하왁가(Vin iii)':['Vin iii','마하왁가','Mahāvagga','대품','10편',764387,24,'출가·포살·안거 등 열 다발'],
+'1_정전/2_율장(Vinaya)/4_쭐라왁가(Vin iv)':['Vin iv','쭐라왁가','Cūḷavagga','소품','12편',754371,23,'갈마·거처·결집 등 열두 다발'],
+'1_정전/2_율장(Vinaya)/5_빠리와라(Vin v)':['Vin v','빠리와라','Parivāra','부수','18편',519416,16,'앞의 것을 되짚는 문답과 게송'],
+'1_정전/3_논장(Abhidhamma)/01_담마상가니(DS)':['DS','담마상가니','Dhammasaṅgaṇī','법집론','5편',389249,6,'마음과 물질을 낱낱이 세어 벌린 목록'],
+'1_정전/3_논장(Abhidhamma)/02_위방가(VB)':['VB','위방가','Vibhaṅga','분별론','18편',636341,9,'열여덟 갈래를 경·논·문답 세 겹으로'],
+'1_정전/3_논장(Abhidhamma)/03_다뚜까타(DT)':['DT','다뚜까타','Dhātukathā','계론','15편',127219,2,'요소로 묶고 가르는 열넷의 방식'],
+'1_정전/3_논장(Abhidhamma)/04_뿍갈라빤냣띠(PP)':['PP','뿍갈라빤냣띠','Puggalapaññatti','인시설론','2편',111012,2,'사람을 갈래지어 세운 논'],
+'1_정전/3_논장(Abhidhamma)/05_까타왓투(KV)':['KV','까타왓투','Kathāvatthu','논사','31편',600218,9,'다른 부파의 주장을 따져 물어 가른다'],
+'1_정전/3_논장(Abhidhamma)/06_야마까(YA)':['YA','야마까','Yamaka','쌍론','11편',1443970,21,'짝지은 물음을 앞뒤로 뒤집는다'],
+'1_정전/3_논장(Abhidhamma)/07_빳타나(PTH)':['PTH','빳타나','Paṭṭhāna','발취론','77편',3413556,51,'스물네 조건으로 법의 이어짐을 훑는다'],
+};
+function bookCard(k,mx){
+  const b=BOOK[k];
+  return '<li class="bk" data-dir="'+k+'">'
+   +'<div class="bkh"><span class="bdg"><b>'+b[0]+'</b><small>'+b[3]+'</small></span>'
+   +'<span class="bkn"><b>'+b[1]+'</b><i>'+b[2]+'</i></span><span class="ar">›</span></div>'
+   +'<div class="bkd">'+b[7]+'</div>'
+   +'<div class="bkm"><span class="num"><b>'+b[4]+'</b> · '+b[5].toLocaleString()+'자</span>'
+   +'<span class="bar"><i style="width:'+Math.round(b[6]/mx*100)+'%"></i></span>'
+   +'<span class="num">'+b[6]+'%</span></div></li>';
+}
+
 function viewTree(){
   if(!path.length) return viewHome();
   const key = path.length? path[path.length-1] : null;
@@ -582,7 +639,11 @@ function viewTree(){
     h+='<li class="idx" data-doc="'+r+'"><div class="lb"><b>'+(d.t||'목차 및 개요')+'</b>'
       +'<small>이 갈래를 안내합니다</small></div><span class="ar">›</span></li>';
   }
-  for(const k of kids){
+  const isBook = kids.length && kids.every(k=>BOOK[k]);
+  if(isBook){
+    const mx=Math.max(...kids.map(k=>BOOK[k][6]));
+    for(const k of kids) h+=bookCard(k,mx);
+  } else for(const k of kids){
     const n=D.nodes[k];
     h+='<li data-dir="'+k+'"><div class="lb"><b>'+n.l+'</b></div>'
       +'<span class="ct">'+n.n.toLocaleString()+'</span><span class="ar">›</span></li>';
