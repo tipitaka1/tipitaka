@@ -115,16 +115,40 @@ html[data-den] ul.den li.bk{padding:15px 16px 13px;margin:10px 0;border-radius:1
 html[data-den] ul.den li.bk .bkn b{font-size:1.2em}
 html[data-den] ul.den li.bk .bkd{display:block;font-size:.76em}
 html[data-den] ul.den li.bk .ar{display:block}
+/* 쿳다까 스무 책 — 같은 얼굴, 반 높이 */
+ul.nav li.bk.sm{padding:10px 12px 9px;margin:6px 0;border-radius:11px}
+li.bk.sm .bkh{gap:9px}
+li.bk.sm .bdg{width:auto;min-width:40px;height:auto;padding:3px 6px;border-radius:8px;
+  display:block;text-align:center}
+li.bk.sm .bdg b{font-size:.68em}
+li.bk.sm .bkn b{display:inline;font-size:1.0em}
+li.bk.sm .bkn i{display:inline;font-size:.72em;margin-left:5px}
+li.bk.sm .bkn u{display:block;text-decoration:none;font-size:.7em;color:var(--dim);
+  margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+li.bk.sm .bkr{flex:none;text-align:right;line-height:1.25}
+li.bk.sm .bkr b{display:block;font-size:.78em;font-weight:700;font-variant-numeric:tabular-nums}
+li.bk.sm .bkr small{display:block;font-size:.64em;color:var(--dim);font-variant-numeric:tabular-nums}
+li.bk.sm .bkm{margin-top:7px;gap:8px}
+li.bk.sm .bar{height:5px}
+li.bk.sm .bkm .num{font-size:.66em}
+html[data-den] ul.den li.bk.sm{padding:10px 12px 9px;margin:6px 0;border-radius:11px}
+html[data-den] ul.den li.bk.sm .bkn b{font-size:1.0em}
+article h2:first-of-type{margin-top:1.2em}
+a.fn{font-size:.62em;color:var(--accent);vertical-align:super;margin-left:4px;
+  cursor:pointer;text-decoration:none;font-weight:700;padding:0 3px}
+a.fnb{display:inline-block;min-width:1.3em;font-size:.72em;color:var(--accent);
+  font-weight:700;cursor:pointer;text-decoration:none}
+.flash{background:var(--hl);border-radius:5px;transition:background .5s}
 .crumb{color:var(--dim);font-size:.78em;padding:2px 2px 8px;line-height:1.5}
 .crumb span{cursor:pointer}
 .crumb span:not(:last-child)::after{content:' › ';color:var(--line)}
 /* 본문 */
 article{max-width:760px;margin:0 auto}
 article h1{font-size:1.22em;line-height:1.45;margin:.2em 0 .1em;word-break:break-all}
-article h2{font-size:1.02em;color:var(--accent);margin:1.7em 0 .5em;
+article h2{font-size:1.02em;color:var(--accent);margin:2.9em 0 .6em;
   padding-bottom:.3em;border-bottom:1px solid var(--line);font-weight:700}
 article .sub{color:var(--dim);font-size:.78em;margin:.1em 0 1.4em;line-height:1.6}
-article h3{font-size:.9em;color:var(--dim);font-weight:700;margin:1.1em 0 .35em;
+article h3{font-size:.9em;color:var(--dim);font-weight:700;margin:2.2em 0 .45em;
   padding:0;border:none;letter-spacing:.01em}
 article h2+h3{margin-top:.5em}
 article h3+h3{margin-top:.6em}
@@ -182,7 +206,9 @@ article blockquote p{margin:6px 0}
   border:1px solid var(--line);border-radius:14px;cursor:pointer}
 .home .tot{text-align:center;color:var(--dim);font-size:.95em;padding:18px 0 4px}
 details.cal{margin:14px 0;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
-details.cal>summary{cursor:pointer;color:var(--dim);font-size:.85em;padding:2px 0}
+details.cal>summary{cursor:pointer;color:var(--accent);font-size:.85em;padding:2px 0;font-weight:700}
+details.cal p{margin:.45em 0;font-size:.92em;line-height:1.7}
+details.cal strong{color:var(--accent);font-weight:700;margin-right:.35em}
 details.cal[open]>summary{margin-bottom:6px;border-bottom:1px solid var(--line)}
 ul.nav li.idx{border-color:var(--accent)}
 ul.nav li.idx .lb b{color:var(--accent)}
@@ -350,7 +376,7 @@ html.picking #toast{bottom:calc(env(safe-area-inset-bottom) + 190px)}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 12835763);
+  const tot = +(r.headers.get('content-length') || 12863128);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
@@ -441,14 +467,15 @@ let navLinks=[];
 function md2html(src,h1){
   const out=[]; navLinks=[];
   const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  let pend='', unit='';                      // 앞 문단에서 넘어온 표지 · 지금 단위
+  let pend='', unit='', sec=0;                      // 앞 문단에서 넘어온 표지 · 지금 단위
   const mk=t=>(C.marks&&t)?'<span class="mkin">'+esc(t)+'</span> ':'';
-  const U=u=>u?' data-u="'+esc(u)+'"':'';
+  const U=u=>(u?' data-u="'+esc(u)+'"':'')+' data-sec="'+sec+'"';
   for(const blk of src.split(/\n\s*\n/)){
     let b=blk.trim(); if(!b) continue;
     if(/^# /.test(b)){ out.push('<h1>'+esc(h1||b.slice(2))+'</h1>'); continue; }
     if(/^#{2,4} /.test(b)){ const lv=b.match(/^#+/)[0].length>2?'h3':'h2';
-      out.push('<'+lv+'>'+esc(b.replace(/^#+ /,''))+'</'+lv+'>'); continue; }
+      sec++; unit='';
+      out.push('<'+lv+' data-sec="'+sec+'">'+esc(b.replace(/^#+ /,''))+'</'+lv+'>'); continue; }
     if(/^<(svg|figure)[\s>]/.test(b)){ out.push(b); continue; }   // 그림은 그대로
     if(/^>/.test(b)){
       let inner=b.split('\n').map(l=>l.replace(/^>\s?/,'')).join('\n');
@@ -607,9 +634,37 @@ const BOOK={
 '1_정전/3_논장(Abhidhamma)/05_까타왓투(KV)':['KV','까타왓투','Kathāvatthu','논사','31편',600218,9,'다른 부파의 주장을 따져 물어 가른다'],
 '1_정전/3_논장(Abhidhamma)/06_야마까(YA)':['YA','야마까','Yamaka','쌍론','11편',1443970,21,'짝지은 물음을 앞뒤로 뒤집는다'],
 '1_정전/3_논장(Abhidhamma)/07_빳타나(PTH)':['PTH','빳타나','Paṭṭhāna','발취론','77편',3413556,51,'스물네 조건으로 법의 이어짐을 훑는다'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/01_쿳다까빠타(소송경)':['Khp','쿳다까빠타','Khuddakapāṭha','소송경','9편',8570,0.2,'삼귀의·오계 등 아홉 짧은 글. 입문서'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/02_담마빠다(법구경)':['Dhp','담마빠다','Dhammapada','법구경','26품',41224,0.9,'423게송. 세상에서 가장 널리 읽힌 불서'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/03_우다나(자설경)':['Ud','우다나','Udāna','자설경','80편',150479,3.2,'부처님이 스스로 터뜨리신 감흥어'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/04_이띠웃따까(여시어경)':['It','이띠웃따까','Itivuttaka','여시어경','112편',88059,1.8,'「이렇게 말씀하셨다」로 여는 112편'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/05_숫따니빠따(경집)':['Sn','숫따니빠따','Suttanipāta','의족경','73편',143735,3.0,'가장 오래된 층. 무소의 뿔·자애경'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/06_위마나왓투(천궁사)':['Vv','위마나왓투','Vimānavatthu','천궁사','85편',89838,1.9,'천상에 난 이들의 전생 선업'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/07_뻬따왓투(아귀사)':['Pv','뻬따왓투','Petavatthu','아귀사','51편',72886,1.5,'아귀로 난 이들의 전생 악업'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/08_테라가타(장로게)':['Th','테라가타','Theragāthā','장로게','264편',116928,2.5,'아라한 장로들이 읊은 게송'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/09_테리가타(장로니게)':['Thī','테리가타','Therīgāthā','장로니게','73편',45218,0.9,'아라한 장로니들의 게송. 여성의 육성'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/10_테라아빠다나(장로본기)':['Ap i','테라아빠다나','Therāpadāna','장로본기','563편',505657,10.6,'장로들이 읊은 전생 자서전'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/11_테리아빠다나(장로니본기)':['Ap ii','테리아빠다나','Therī-apadāna','장로니본기','40편',107128,2.2,'장로니 40분의 같은 형식'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/12_붓다왐사(불종성)':['Bv','붓다왐사','Buddhavaṃsa','불종성','29편',81799,1.7,'과거 24불의 계보와 수기'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/13_짜리야삐따까(소행장)':['Cp','짜리야삐따까','Cariyāpiṭaka','소행장','35편',29448,0.6,'보살의 바라밀 실천 35편'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/14_자따까(본생담)':['Ja','자따까','Jātaka','본생담','567편',592887,12.4,'547 본생. 정전은 게송뿐, 이야기는 주석에'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/15_마하닛데사(대의석)':['Nd 1','마하닛데사','Mahāniddesa','대의석','16편',597116,12.5,'숫따니빠따 4품을 낱말마다 푼 주석'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/16_쭐라닛데사(소의석)':['Nd 2','쭐라닛데사','Cūḷaniddesa','소의석','23편',414388,8.7,'숫따니빠따 5품과 무소의 뿔의 주석'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/17_빠띠삼비다막가(무애해도)':['Ps','빠띠삼비다막가','Paṭisambhidāmagga','무애해도','31편',657942,13.8,'논장에 가까운 수행 분석서'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/18_넷띠빠까라나(지도론)':['Ne','넷띠빠까라나','Nettippakaraṇa','지도론','37편',219507,4.6,'경을 푸는 법을 세운 해석학'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/19_뻬따꼬빠데사(장석론)':['Pe','뻬따꼬빠데사','Peṭakopadesa','장석론','8편',252628,5.3,'넷띠와 짝을 이루는 해석 지침'],
+'1_정전/1_경장(Sutta)/05_쿳다까(KN)/20_밀린다빤하(밀린다왕문경)':['Mil','밀린다빤하','Milindapañha','나선비구경','244편',549854,11.5,'그리스계 왕과 나가세나의 문답'],
 };
-function bookCard(k,mx){
+function bookCard(k,mx,sm){
   const b=BOOK[k];
+  if(sm) return '<li class="bk sm" data-dir="'+k+'">'
+   +'<div class="bkh"><span class="bdg"><b>'+b[0]+'</b></span>'
+   +'<span class="bkn"><b>'+b[1]+'</b> <i>'+b[2]+'</i>'
+   +'<u>'+b[3]+' · '+b[7]+'</u></span>'
+   +'<span class="bkr"><b>'+b[4]+'</b><small>'+b[5].toLocaleString()+'자</small></span>'
+   +'<span class="ar">›</span></div>'
+   +'<div class="bkm"><span class="bar"><i style="width:'+(b[6]/mx*100).toFixed(1)+'%"></i></span>'
+   +'<span class="num">'+b[6]+'%</span></div></li>';
   return '<li class="bk" data-dir="'+k+'">'
    +'<div class="bkh"><span class="bdg"><b>'+b[0]+'</b><small>'+b[3]+'</small></span>'
    +'<span class="bkn"><b>'+b[1]+'</b><i>'+b[2]+'</i></span><span class="ar">›</span></div>'
@@ -642,7 +697,9 @@ function viewTree(){
   const isBook = kids.length && kids.every(k=>BOOK[k]);
   if(isBook){
     const mx=Math.max(...kids.map(k=>BOOK[k][6]));
-    for(const k of kids) h+=bookCard(k,mx);
+    const sm=kids.length>8;            // 쿳다까 스무 책 — 반 높이로
+    if(sm) h=h.replace('<ul class="nav den">','<ul class="nav den sm">');
+    for(const k of kids) h+=bookCard(k,mx,sm);
   } else for(const k of kids){
     const n=D.nodes[k];
     h+='<li data-dir="'+k+'"><div class="lb"><b>'+n.l+'</b></div>'
@@ -781,6 +838,44 @@ async function checkUpdate(){
     setTimeout(()=>location.reload(), 900);
   }catch(err){ m.textContent='확인하지 못했습니다 — '+err.message; }
 }
+/* ── 주석 번호 ──────────────────────────────
+   본문은 한 글자도 고치지 않는다. 그릴 때 앱이 번호를 얹는다.
+   풀이 한 줄의 머리(### 소제목 그대로 · §표지)로 자리를 찾는다. */
+function footnotes(art){
+  const hs=[...art.querySelectorAll('h2')];
+  const fh=hs.find(x=>x.textContent.trim()==='풀이'); if(!fh) return;
+  const notes=[]; let e=fh.nextElementSibling;
+  while(e && e.tagName!=='H2'){ if(e.tagName==='P') notes.push(e); e=e.nextElementSibling; }
+  const heads=[...art.querySelectorAll('h2,h3')];
+  let n=0;
+  for(const p of notes){
+    const raw=p.textContent||'';
+    const mm=raw.match(/^〔([^〕]+)〕\s*/); if(!mm) continue;
+    const cut=mm[0].length, key=mm[1].trim(); let tgt=null;
+    if(key[0]==='§'){
+      const all=[...art.querySelectorAll('[data-u="'+CSS.escape(key)+'"]')];
+      tgt=all[all.length-1];
+    } else tgt=heads.find(h=>h!==fh && h.textContent.trim()===key);
+    if(!tgt) continue;
+    n++;
+    tgt.id='t'+n; p.id='f'+n;
+    const up=document.createElement('a');
+    up.className='fn'; up.dataset.go='f'+n; up.textContent=n;
+    tgt.appendChild(up);
+    const bk=document.createElement('a');
+    bk.className='fnb'; bk.dataset.go='t'+n; bk.textContent=n;
+    p.textContent=raw.slice(cut);
+    p.insertBefore(bk, p.firstChild);
+  }
+}
+document.addEventListener('click',e=>{
+  const a=e.target.closest('a.fn,a.fnb'); if(!a) return;
+  e.preventDefault();
+  const t=document.getElementById(a.dataset.go);
+  if(t){ const y=t.getBoundingClientRect().top+scrollY-70; scrollTo({top:y,behavior:'smooth'});
+         t.classList.add('flash'); setTimeout(()=>t.classList.remove('flash'),1200); }
+},true);
+
 function viewDoc(keep){
   const d=D.docs[cur];
   const DT=disp(cur);          // 상단 바 — 코드까지 (어디인지 알아야 하니)
@@ -797,6 +892,7 @@ function viewDoc(keep){
       '<a href="#" data-link="'+x[1]+'">'+x[0]+' →</a>').join('')+'</nav>';
   }
   M.innerHTML='<article>'+body+'</article>';
+  footnotes(M.querySelector('article'));
   if(PICK.size){ PICK.clear(); pickRefresh(); }
   if(!keep) scrollTo(0,0);
 }
@@ -980,27 +1076,41 @@ function pickText(){
     const map={};
     box.querySelectorAll('p[data-u]').forEach(p=>{
       const u=p.dataset.u; if(!keep.includes(u)) return;
-      p.querySelectorAll('.mkin').forEach(x=>x.remove());
+      p.querySelectorAll('.mkin,.fn,.fnb').forEach(x=>x.remove());
       p.querySelectorAll('br').forEach(x=>x.replaceWith('\n'));
       const t=p.textContent||'';
       if(t.trim()) (map[u]=map[u]||[]).push(t.trim());
     });
     return map;
   };
+  /* 소제목 — 갈래가 바뀌는 자리에 넣는다. 앞은 빈 줄 둘 */
+  const SEC={};
+  document.querySelectorAll('article h2[data-sec],article h3[data-sec]').forEach(h=>{
+    const c=h.cloneNode(true); c.querySelectorAll('a.fn').forEach(x=>x.remove());
+    SEC[h.dataset.sec]=c.textContent.trim();
+  });
+  const secOf={};
+  document.querySelectorAll('article p[data-u]').forEach(p=>{
+    if(secOf[p.dataset.u]===undefined) secOf[p.dataset.u]=p.dataset.sec||'0'; });
   const order=[];
   document.querySelectorAll('article p[data-u]').forEach(p=>{
     if(PICK.has(p.dataset.u) && !order.includes(p.dataset.u)) order.push(p.dataset.u);
   });
+  let last=null;
+  const head=u=>{ const s=secOf[u]; if(s===last) return;
+    last=s; if(SEC[s]) out.push('\n'+SEC[s]); };
   if(PMODE==='both'){
     const pa=grab(2), ko=grab(1);
     for(const u of order){
       const a=(pa[u]||[]).join(' '), b=(ko[u]||[]).join(' ');
-      out.push([u+' '+a, b].filter(Boolean).join('\n'));
+      const t=[u+' '+a, b].filter(Boolean).join('\n');
+      if(t.trim()){ head(u); out.push(t); }
     }
     return out.join('\n\n');
   }
   const m=grab(PMODE==='pa'?2:1);
-  for(const u of order){ const t=(m[u]||[]).join(' '); if(t) out.push(u+' '+t); }
+  for(const u of order){ const t=(m[u]||[]).join(' ');
+    if(t){ head(u); out.push(u+' '+t); } }
   return out.join('\n\n');
 }
 function pickPayload(){
