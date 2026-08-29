@@ -1,6 +1,6 @@
 /* 껍데기(index.html)는 새것을 먼저 받아 본다 — 앱을 고쳤을 때 바로 반영되도록.
    자료(data.bin)와 아이콘은 캐시를 먼저 쓴다 — 2.8MB 를 매번 받지 않도록. */
-const C='kyl3-pub-2026-08-29-8fa86488';
+const C='kyl3-pub-2026-08-29-fc53a5a0';
 const F=['./','./index.html','./data.bin','./f-kr.woff2','./f-krb.woff2','./f-pali.woff2',
          './manifest.webmanifest','./icon-192.png','./icon-512.png',
          './icon-mask-192.png','./icon-mask-512.png','./og.png'];
