@@ -71,6 +71,7 @@ ul.nav li{
 ul.nav li:active{transform:scale(.99)}
 ul.nav .lb{flex:1;min-width:0}
 ul.nav .lb b{display:block;font-weight:700}
+ul.nav .lb small.intro{color:var(--pali)}
 ul.nav .lb small{color:var(--dim);font-size:.78em;display:block;margin-top:2px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 ul.nav .ct{color:var(--dim);font-size:.75em;white-space:nowrap}
@@ -168,6 +169,20 @@ html[data-den='3'] ul.den .pill{padding:3px 7px 4px;min-width:54px}
 html[data-den='3'] ul.den .pill small,html[data-den='3'] ul.den .pill .tick{display:none}
 html[data-den='4'] ul.den .pill{display:none}
 #res .pill{align-self:flex-start}
+/* 이전 경 · 다음 경 */
+/* 오른쪽 단추 무리가 「다음 경」을 가리지 않도록 그만큼 자리를 비운다 */
+nav.pn{display:flex;gap:9px;margin:34px 0 8px;padding:16px 56px 0 0;border-top:1px solid var(--line)}
+html .fabs.fold ~ main nav.pn{padding-right:0}
+nav.pn a,nav.pn span{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;
+  background:var(--card);padding:11px 13px;text-decoration:none;color:var(--fg);
+  display:block;line-height:1.35}
+nav.pn span{border-color:transparent;background:none}
+nav.pn small{display:block;font-size:.66em;color:var(--dim);letter-spacing:.03em}
+nav.pn b{display:block;font-size:.86em;font-weight:700;margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+nav.pn .n{text-align:right}
+nav.pn a.p b::before{content:'‹ '}
+nav.pn a.n b::after{content:' ›'}
 .crumb{color:var(--dim);font-size:.78em;padding:2px 2px 8px;line-height:1.5}
 .crumb span{cursor:pointer}
 .crumb span:not(:last-child)::after{content:' › ';color:var(--line)}
@@ -414,7 +429,7 @@ html.picking #toast{bottom:calc(env(safe-area-inset-bottom) + 190px)}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 13218855);
+  const tot = +(r.headers.get('content-length') || 13258034);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
@@ -771,12 +786,14 @@ function viewTree(){
   }
   for(const r of docs.filter(x=>!IDX.test(x))){
     const d=D.docs[r];
+    const sub=d.i||d.p;
     h+='<li data-doc="'+r+'"><div class="lb"><b>'+disp(r)+'</b>'
-      +(d.p?'<small>'+d.p+'</small>':'')+'</div>'+hit(r)+lenTag(r)+'<span class="ar">›</span></li>';
+      +(sub?'<small'+(d.i?' class="intro"':'')+'>'+sub+'</small>':'')+'</div>'
+      +hit(r)+lenTag(r)+'<span class="ar">›</span></li>';
   }
   h+='</ul>';
   if(!kids.length && !docs.length) h='<div class="empty">비어 있습니다.</div>';
-  M.innerHTML=h; scrollTo(0,0);
+  M.innerHTML=h; backY();
 }
 
 function viewList(arr,msg){
@@ -785,7 +802,7 @@ function viewList(arr,msg){
   if(!ok.length){ M.innerHTML='<div class="empty">'+msg.replace(/\n/g,'<br>')+'</div>'; return; }
   M.innerHTML='<ul class="nav">'+ok.map(r=>{
     const d=D.docs[r];
-    return '<li data-doc="'+r+'"><div class="lb"><b>'+disp(r)+'</b><small>'+(d.s||d.p)+'</small></div>'+hit(r)+lenTag(r)+'<span class="ar">›</span></li>';
+    return '<li data-doc="'+r+'"><div class="lb"><b>'+disp(r)+'</b><small'+(d.i?' class="intro"':'')+'>'+(d.i||d.s||d.p)+'</small></div>'+hit(r)+lenTag(r)+'<span class="ar">›</span></li>';
   }).join('')+'</ul>';
   scrollTo(0,0);
 }
@@ -1065,6 +1082,45 @@ document.addEventListener('click',e=>{
          t.classList.add('flash'); setTimeout(()=>t.classList.remove('flash'),1200); }
 },true);
 
+/* ── 이전 경 · 다음 경 ─────────────────────
+   갈래를 훑는 차례 그대로 한 줄로 편다. 니빠따 같은 아래 갈래도 넘나든다. */
+let FLAT=null;
+function buildFlat(){
+  FLAT=[];
+  const walk=k=>{ const n=D.nodes[k]; if(!n) return;
+    for(const r of n.d) FLAT.push(r);
+    for(const c of n.k) walk(c); };
+  for(const r of D.roots) walk(r);
+}
+function bookOf(r){
+  const a=r.split('/');
+  if(a.length>=5 && /05_쿳다까/.test(a[2]||'')) return a.slice(0,4).join('/');
+  return a.slice(0,Math.max(1,a.length-1)).join('/');
+}
+function nearBy(r){
+  if(!FLAT) buildFlat();
+  const i=FLAT.indexOf(r); if(i<0) return [null,null];
+  const bk=bookOf(r);
+  const pick=(j,d)=>{ for(;j>=0&&j<FLAT.length;j+=d){ const x=FLAT[j];
+      if(bookOf(x)!==bk) return null;
+      if(/000_목차/.test(x)) continue;
+      return x; } return null; };
+  return [pick(i-1,-1), pick(i+1,1)];
+}
+const shortT=r=>{ const d=D.docs[r]; let t=d.t||(d.n||'').split('_').pop();
+  t=t.replace(/^[0-9]+[._]\s*/,'');
+  return t.length>16? t.slice(0,16)+'…' : t; };
+function prevNext(r){
+  const [a,b]=nearBy(r);
+  if(!a && !b) return '';
+  let h='<nav class="pn">';
+  h+= a? '<a data-doc="'+a+'" class="p"><small>이전 경</small><b>'+shortT(a)+'</b></a>'
+       : '<span class="p"></span>';
+  h+= b? '<a data-doc="'+b+'" class="n"><small>다음 경</small><b>'+shortT(b)+'</b></a>'
+       : '<span class="n"></span>';
+  return h+'</nav>';
+}
+
 function viewDoc(keep){
   const d=D.docs[cur];
   const DT=disp(cur);          // 상단 바 — 코드까지 (어디인지 알아야 하니)
@@ -1074,13 +1130,13 @@ function viewDoc(keep){
   const n=hits[cur]||0;
   let body=md2html(d.c, H1);
   if(!/^<h1>/.test(body)) body='<h1>'+H1+'</h1>'+body;      // 큰 제목이 없던 파일도 붙인다
-  const sub='<div class="sub">'+(d.s||'')+(C.hits&&n?' · 조회 '+n:'')+'</div>';
+  const sub='<div class="sub">'+(d.i? d.i+' · ':'')+(d.s||'')+(C.hits&&n?' · 조회 '+n:'')+'</div>';
   body=body.replace(/(<\/h1>)/, '$1'+sub);                   // 큰 제목 바로 아래에
   if(navLinks.length){                                        // 길잡이 줄을 단추로 되살린다
     body+='<nav class="rel">'+navLinks.map(x=>
       '<a href="#" data-link="'+x[1]+'">'+x[0]+' →</a>').join('')+'</nav>';
   }
-  M.innerHTML='<article>'+body+'</article>';
+  M.innerHTML='<article>'+body+prevNext(cur)+'</article>';
   footnotes(M.querySelector('article'));
   if(JUMP){ const nd=JUMP; JUMP=null;
     const t=[...M.querySelectorAll('article p,article h2,article h3')]
@@ -1107,7 +1163,22 @@ const plen=()=> (path.length && PASS.includes(path[0]))? Math.max(0,path.length-
 const level=()=> plen() + (cur?1:0) + (tab!=='tree'?1:0) + ((typeof PON!=='undefined'&&PON)?1:0);
 let LV=0, IGN=0;
 function stamp(){ try{ history.replaceState({kyl:1},'',hashNow()); }catch(e){} }
+/* 목록마다 굴린 자리를 적어 둔다 — 경을 읽고 물러나면 보던 자리에 그대로 선다 */
+try{ history.scrollRestoration='manual'; }catch(e){}   /* 브라우저가 제 기억으로 되밀지 못하게 */
+const YMAP={};
+const skey=()=> cur? ('D:'+cur) : ('T:'+path.join('|')+'|'+tab);
+function keepY(){ try{ YMAP[skey()]=scrollY; }catch(e){} }
+function backY(){
+  const y=YMAP[skey()]||0;
+  if(!y){ scrollTo(0,0); return; }
+  /* 목록이 다 그려지기 전에는 문서가 짧아 자리가 밀린다 — 자리를 잡을 때까지 몇 번 되민다 */
+  let n=0;
+  const go=()=>{ scrollTo(0,y);
+    if(++n<8 && Math.abs(scrollY-y)>2) setTimeout(go,45); };
+  requestAnimationFrame(go);
+}
 function push(fn){
+  keepY();
   const before=LV;
   fn(); render();
   const now=level();
@@ -1131,6 +1202,7 @@ addEventListener('hashchange',()=>{
   render(); LV=level(); stamp();
 });
 addEventListener('popstate',()=>{
+  keepY();
   if(IGN>0){ IGN--; if(!IGN){ LV=level(); stamp(); } return; }   // 우리가 되감은 것
   const box=$('install');
   if(box && box.classList.contains('show')) box.classList.remove('show');
