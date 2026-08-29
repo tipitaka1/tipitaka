@@ -472,7 +472,7 @@ html.picking #toast{bottom:calc(env(safe-area-inset-bottom) + 190px)}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 13259130);
+  const tot = +(r.headers.get('content-length') || 13265231);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
@@ -619,7 +619,8 @@ function md2html(src,h1){
       .replace(/\[\[([^\]|]+?)\|([^\]]+?)\]\]/g,(m,x,y)=>'<a href="#" data-link="'+x+'">'+y+'</a>')
       .replace(/\[\[([^\]|]+?)\]\]/g,(m,x)=>'<a href="#" data-link="'+x+'">'+x+'</a>')
       .replace(/`([^`]+)`/g,'<code>$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+      .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
+      .replace(/(^|[^*\w])\*([^*\n]+)\*(?![*\w])/g,'$1<i>$2</i>');   /* *기울임* */
     if(/^\|/.test(lines[0]) && lines.length>=2 && /^\|[\s:|-]+\|?$/.test(lines[1].trim())){
       const cut=r=>r.replace(/^\|/,'').replace(/\|$/,'').split(/(?<!\\)\|/);
       const cell=r=>cut(r).map(x=>ink(x.trim().replace(/\\\|/g,'|')));
@@ -628,25 +629,13 @@ function md2html(src,h1){
         return t.endsWith(':')? (t.startsWith(':')?'center':'right') : 'left';
       });
       const th=cell(lines[0]);
-      let t='<div class="tw"><table><thead><tr>'
-        +th.map((c,i)=>'<th style="text-align:'+(al[i]||'left')+'">'+c+'</th>').join('')
-        +'</tr></thead><tbody>';
-      for(const r of lines.slice(2)){
-        if(!/\|/.test(r)) continue;
-        const cs=cell(r);
-        t+='<tr>'+cs.map((c,i)=>'<td style="text-align:'+(al[i]||'left')+'">'+c+'</td>').join('')+'</tr>';
-      }
-      out.push(t+'</tbody></table></div>'); continue;
-    }
-    if(mode===2){ if(tag) pend=tag; continue; }
-    pend='';
-    if(/^[-*] /.test(lines[0])){                 // 목록 — 들여쓴 줄은 앞 항목에 붙인다
-      const items=[];
-      for(const l of lines){
-        if(/^[-*] /.test(l)) items.push(l.replace(/^[-*] /,''));
-        else if(items.length) items[items.length-1]+='\n'+l.trim();
-      }
-      out.push('<ul class="bul">'+items.map(t=>'<li>'+ink(t)+'</li>').join('')+'</ul>');
+      const bare=th.every(x=>!x.trim());          // 「| | |」 — 머리 없는 표
+      let t='<div class="tw"><table>';
+      if(!bare) t+='<thead><tr>'+th.map((x,i)=>'<th style="text-align:'+al[i]+'">'+x+'</th>').join('')+'</tr></thead>';
+      t+='<tbody>';
+      for(const r of lines.slice(2))
+        t+='<tr>'+cell(r).map((x,i)=>'<td style="text-align:'+(al[i]||'left')+'">'+x+'</td>').join('')+'</tr>';
+      out.push(t+'</tbody></table></div>');
       continue;
     }
     let h=ink(b);
@@ -682,7 +671,7 @@ const SECT=[['정 전','1_정전'],['주 석','2_주석']];
 const LIMB=[['경','經','숫따','1_경장(Sutta)','Sutta'],
             ['율','律','위나야','2_율장(Vinaya)','Vinaya'],
             ['논','論','아비담마','3_논장(Abhidhamma)','Abhidhamma']];
-const ETC=[['복주석','3_복주석'],['관리','4_관리'],['인쇄용','5_인쇄용'],['도구','_도구']];
+const ETC=[['관리','4_관리'],['인쇄용','5_인쇄용'],['도구','_도구']];
 const GUIDE=[['삼장이란','무엇이 담겨 있나','0_길잡이/G_001_삼장이란.md'],
              ['그 시절 인도','니까야의 무대','0_길잡이/G_005_그 시절 인도.md'],
              ['이 대역에 대하여','누가 · 무엇으로 · 왜','0_길잡이/G_006_이 대역에 대하여.md']];
@@ -803,11 +792,12 @@ function viewTree(){
   }
   h+='<ul class="nav den">';
   /* 「목차 및 개요」는 언제나 맨 위에 — 그 갈래의 길잡이니까 */
-  const IDX=/000_목차/;
+  const IDX=/000_(목차|.*주석서 소개)|주석서 소개\)/;
   for(const r of docs.filter(x=>IDX.test(x))){
     const d=D.docs[r];
+    const att=/주석서 소개/.test(r);
     h+='<li class="idx" data-doc="'+r+'"><div class="lb"><b>'+(d.t||'목차 및 개요')+'</b>'
-      +'<small>이 갈래를 안내합니다</small></div><span class="ar">›</span></li>';
+      +'<small>'+(att?'이 갈래의 주석서':'이 갈래를 안내합니다')+'</small></div><span class="ar">›</span></li>';
   }
   const isBook = kids.length && kids.every(k=>BOOK[k]);
   if(isBook){
