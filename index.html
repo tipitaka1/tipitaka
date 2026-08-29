@@ -149,6 +149,25 @@ a.fnb{display:inline-block;min-width:1.3em;font-size:.72em;color:var(--accent);
 #res .lb small{white-space:normal;display:block;margin-top:3px;line-height:1.6}
 #res mark{background:var(--hl);color:var(--fg);border-radius:3px;padding:0 1px}
 #res li{align-items:flex-start}
+.made{margin:26px 2px 8px;padding:14px 15px;border:1px solid var(--line);
+  border-radius:12px;background:var(--card);color:var(--dim);font-size:.8em;line-height:1.75}
+.made b{color:var(--fg)}
+.made>b{display:block;color:var(--accent);font-size:1.02em;margin-bottom:7px}
+.made p{margin:.45em 0}
+.made i{font-style:italic;color:var(--pali)}
+.made .warn{margin-top:.8em;padding-top:.7em;border-top:1px solid var(--line)}
+/* 글 길이 알약 — 500자를 1분으로 */
+ul.nav .pill{flex:none;border:1px solid var(--line);border-radius:12px;
+  padding:5px 9px 6px;text-align:center;line-height:1.2;min-width:64px;margin-left:2px}
+ul.nav .pill b{display:block;font-size:.74em;font-weight:700;color:var(--accent);white-space:nowrap}
+ul.nav .pill small{display:block;font-size:.58em;color:var(--dim);margin-top:1px;white-space:nowrap}
+ul.nav .pill .tick{display:flex;gap:2px;justify-content:center;margin-top:5px}
+ul.nav .pill .tick i{width:8px;height:3px;border-radius:2px;background:var(--bg)}
+ul.nav .pill .tick i.on{background:var(--accent)}
+html[data-den='3'] ul.den .pill{padding:3px 7px 4px;min-width:54px}
+html[data-den='3'] ul.den .pill small,html[data-den='3'] ul.den .pill .tick{display:none}
+html[data-den='4'] ul.den .pill{display:none}
+#res .pill{align-self:flex-start}
 .crumb{color:var(--dim);font-size:.78em;padding:2px 2px 8px;line-height:1.5}
 .crumb span{cursor:pointer}
 .crumb span:not(:last-child)::after{content:' › ';color:var(--line)}
@@ -202,6 +221,8 @@ article blockquote p{margin:6px 0}
 .band.att .g button .k{color:var(--dim)}
 .g button .k em{font-size:.4em;font-style:normal;font-weight:400;color:var(--dim)}
 .g button .pl{font-size:1.2em;font-weight:700;color:var(--fg)}
+.g button .pl i{display:block;font-size:.52em;font-weight:400;font-style:italic;
+  color:var(--pali);letter-spacing:.01em;margin-top:1px}
 .g button .v{font-size:1em;color:var(--dim)}
 .g button.off{opacity:.34}
 .home .gd{display:grid;grid-template-columns:1fr 1fr;gap:11px;
@@ -218,7 +239,7 @@ article blockquote p{margin:6px 0}
 details.cal{margin:14px 0;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
 details.cal>summary{cursor:pointer;color:var(--accent);font-size:.85em;padding:2px 0;font-weight:700}
 details.cal p{margin:.45em 0;font-size:.92em;line-height:1.7}
-details.cal strong{color:var(--accent);font-weight:700;margin-right:.35em}
+details.cal strong{color:var(--accent);font-weight:700;margin-right:.15em}
 details.cal[open]>summary{margin-bottom:6px;border-bottom:1px solid var(--line)}
 ul.nav li.idx{border-color:var(--accent)}
 ul.nav li.idx .lb b{color:var(--accent)}
@@ -300,6 +321,8 @@ html.picking article p[data-u]{cursor:pointer}
   width:44px;height:44px;border-radius:50%;background:var(--card);
   box-shadow:0 2px 10px rgba(0,0,0,.16);font-size:1.15em;padding:0;
 }
+.fabs{transition:opacity .18s, transform .18s}
+.fabs.hid{opacity:0;transform:translateX(64px);pointer-events:none}
 #toast{position:fixed;left:50%;transform:translateX(-50%);
   bottom:calc(env(safe-area-inset-bottom) + 84px);z-index:70;
   background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:22px;
@@ -358,6 +381,7 @@ html.picking #toast{bottom:calc(env(safe-area-inset-bottom) + 190px)}
   <button id="shr" title="이 경 주소 보내기">⤴</button>
   <button id="mode" title="팔리·한글 보기">⇄</button>
   <button id="top" title="맨 위로">↑</button>
+  <button id="bot" title="맨 아래로">↓</button>
 </div>
 
 <div id="pick" style="display:none">
@@ -385,7 +409,7 @@ html.picking #toast{bottom:calc(env(safe-area-inset-bottom) + 190px)}
 async function getData(){
   const r = await fetch('data.bin');
   if(!r.ok) throw new Error('data.bin ' + r.status);
-  const tot = +(r.headers.get('content-length') || 13198134);
+  const tot = +(r.headers.get('content-length') || 13218855);
   const rd = r.body && r.body.getReader();
   if(!rd) return new Uint8Array(await r.arrayBuffer());
   const parts = []; let got = 0;
@@ -453,7 +477,7 @@ async function boot(){
     recent=[cur].concat(recent.filter(x=>x!==cur)).slice(0,60); S.set('recent',recent);
   }
   render();
-  sync();
+  LV=level(); stamp();
   askInstall();
 }
 
@@ -582,7 +606,7 @@ function render(){
   $('star').style.display = doc?'':'none';
   $('fabs').style.display = doc?'flex':'none';
   if(tab==='find')   return viewFind();
-  if(doc) return viewDoc();
+  if(doc) return viewDoc(PON?true:false);
   if(tab==='set')    return viewSet();
   if(tab==='star')   return viewList(stars,'즐겨찾기가 비어 있습니다.\n경을 열고 오른쪽 위 ☆ 를 누르세요.');
   if(tab==='recent') return viewList(recent,'최근에 본 경이 없습니다.');
@@ -590,9 +614,9 @@ function render(){
 }
 
 const SECT=[['정 전','1_정전'],['주 석','2_주석']];
-const LIMB=[['경','經','숫따','1_경장(Sutta)'],
-            ['율','律','위나야','2_율장(Vinaya)'],
-            ['논','論','아비담마','3_논장(Abhidhamma)']];
+const LIMB=[['경','經','숫따','1_경장(Sutta)','Sutta'],
+            ['율','律','위나야','2_율장(Vinaya)','Vinaya'],
+            ['논','論','아비담마','3_논장(Abhidhamma)','Abhidhamma']];
 const ETC=[['복주석','3_복주석'],['관리','4_관리'],['인쇄용','5_인쇄용'],['도구','_도구']];
 const GUIDE=[['삼장이란','무엇이 담겨 있나','0_길잡이/G_001_삼장이란.md'],
              ['그 시절 인도','니까야의 무대','0_길잡이/G_005_그 시절 인도.md']];
@@ -603,13 +627,13 @@ function viewHome(){
   for(const [nm,root] of SECT){
     const cls = root==='1_정전' ? 'sut' : 'att';
     h+='<div class="band '+cls+'"><h2><b>'+nm+'</b><i>'+(SUB[nm]||'')+'</i></h2><div class="g">';
-    for(const [k,hj,pl,sub] of LIMB){
+    for(const [k,hj,pl,sub,rom] of LIMB){
       const key=root+'/'+sub, nd=D.nodes[key], n=nd?nd.n:0;
       tot+=n;
       h+='<button '+(n?'data-dir="'+key+'"':'data-soon="'+nm.replace(/ /g,'')+' '+k+'장"')
         +' class="'+(n?'on':'off')+'">'
         +'<span class="k">'+k+'<em>'+hj+'</em></span>'
-        +'<span class="pl">'+pl+'</span>'
+        +'<span class="pl">'+pl+'<i>'+rom+'</i></span>'
         +'<span class="v">'+(n?n.toLocaleString()+'편':'아직')+'</span></button>';
     }
     h+='</div></div>';
@@ -620,7 +644,17 @@ function viewHome(){
   const etc=ETC.filter(x=>D.nodes[x[1]]&&D.nodes[x[1]].n);
   if(etc.length) h+='<div class="etc">'+etc.map(x=>
       '<span data-dir="'+x[1]+'">'+x[0]+' '+D.nodes[x[1]].n+'</span>').join('')+'</div>';
-  h+='<div class="tot">모두 '+tot.toLocaleString()+'편</div></div>';
+  h+='<div class="tot">모두 '+tot.toLocaleString()+'편</div>';
+  h+='<div class="made">'
+    +'<b>이 대역은 이렇게 만들어졌습니다</b>'
+    +'<p>바탕 글은 <i>빠알리 삼장 6차결집본</i>(Chaṭṭha Saṅgāyana Tipiṭaka, VRI)의 로마자 판입니다.</p>'
+    +'<p>한국어로 옮긴 것은 사람이 아니라 <b>클로드 오퍼스 5.0</b>(Claude Opus 5.0)이며, '
+    +'<b>2026년 8월</b>에 옮겼습니다. 「얼개」와 「풀이」도 같은 도구가 지었습니다.</p>'
+    +'<p>엮은이는 <b>익명 개발자</b>입니다. 어느 종단이나 단체와도 관계가 없습니다.</p>'
+    +'<p class="warn">사람의 손이 닿지 않은 기계 번역입니다. 크게 그르친 데는 없도록 살폈으나 '
+    +'낱말의 결이나 미묘한 대목은 어긋날 수 있으니, 무겁게 쓰실 자리라면 '
+    +'팔리 원문이나 이름 있는 번역과 견주어 보시기 바랍니다.</p>'
+    +'</div></div>';
   M.innerHTML=h; scrollTo(0,0);
 }
 
@@ -684,6 +718,19 @@ function bookCard(k,mx,sm){
    +'<span class="num">'+b[6]+'%</span></div></li>';
 }
 
+/* ── 글 길이 ─────────────────────────────
+   한글 500자를 1분으로 셈한다. 다섯 칸 눈금은 400·1,200·4,000·15,000자에서 끊는다. */
+function lenLv(k){ return k<400?1 : k<1200?2 : k<4000?3 : k<15000?4 : 5; }
+function lenMin(k){ const m=Math.round(k/500); return m<1? '1분 아래' : m+'분'; }
+function lenTag(r){
+  const d=D.docs[r], k=d&&d.k;
+  if(!k) return '';
+  const L=lenLv(k); let t='';
+  for(let i=0;i<5;i++) t+='<i'+(i<L?' class="on"':'')+'></i>';
+  return '<span class="pill nb"><b>'+lenMin(k)+'</b><small>'+k.toLocaleString()+'자</small>'
+       + '<span class="tick">'+t+'</span></span>';
+}
+
 function viewTree(){
   if(!path.length) return viewHome();
   const key = path.length? path[path.length-1] : null;
@@ -718,7 +765,7 @@ function viewTree(){
   for(const r of docs.filter(x=>!IDX.test(x))){
     const d=D.docs[r];
     h+='<li data-doc="'+r+'"><div class="lb"><b>'+disp(r)+'</b>'
-      +(d.p?'<small>'+d.p+'</small>':'')+'</div>'+hit(r)+'<span class="ar">›</span></li>';
+      +(d.p?'<small>'+d.p+'</small>':'')+'</div>'+hit(r)+lenTag(r)+'<span class="ar">›</span></li>';
   }
   h+='</ul>';
   if(!kids.length && !docs.length) h='<div class="empty">비어 있습니다.</div>';
@@ -731,7 +778,7 @@ function viewList(arr,msg){
   if(!ok.length){ M.innerHTML='<div class="empty">'+msg.replace(/\n/g,'<br>')+'</div>'; return; }
   M.innerHTML='<ul class="nav">'+ok.map(r=>{
     const d=D.docs[r];
-    return '<li data-doc="'+r+'"><div class="lb"><b>'+disp(r)+'</b><small>'+(d.s||d.p)+'</small></div>'+hit(r)+'<span class="ar">›</span></li>';
+    return '<li data-doc="'+r+'"><div class="lb"><b>'+disp(r)+'</b><small>'+(d.s||d.p)+'</small></div>'+hit(r)+lenTag(r)+'<span class="ar">›</span></li>';
   }).join('')+'</ul>';
   scrollTo(0,0);
 }
@@ -897,7 +944,7 @@ function runFind(){
       return '<li data-doc="'+esc2(r)+'" data-jump="'+esc2(sn[0].slice(0,28))+'">'
         +'<div class="lb"><b>'+esc2(disp(r))+'</b>'
         + sn.map(t=>'<small>'+paint(cut(t))+'</small>').join('')
-        +'</div></li>';
+        +'</div>'+lenTag(r)+'</li>';
     }).join('')+(hits.length>300?'<li style="justify-content:center;color:var(--dim)">앞 300편만 보입니다</li>':'')+'</ul>';
 }
 /* 결과를 누르면 그 문단으로 뛴다 */
@@ -1042,36 +1089,43 @@ function viewDoc(keep){
 /* 폰의 뒤로가기 단추가 앱 안에서 한 칸씩 물러나게 한다.
    가는 곳마다 history 에 한 칸을 쌓아 두어야 뒤로가기가 앱을 빠져나가지 않는다. */
 const hashNow=()=> cur? '#'+idOf(cur) : location.pathname+location.search;
-/* 폰의 뒤로가기는 「한 칸 위로」다 — 지나온 자취를 되짚지 않는다.
-   자리를 딱 하나만 쟁여 두었다가, 뿌리에 닿으면 쟁이지 않아 그대로 앱을 빠져나가게 한다. */
-const atRoot=()=> !cur && tab==='tree' && !path.length;
-let SPARE=false;
-function sync(){
-  try{ history.replaceState({kyl:1},'',hashNow()); }catch(e){}
-  if(!atRoot() && !SPARE){ try{ history.pushState({kyl:2},'',hashNow()); SPARE=true; }catch(e){} }
+/* 폰의 뒤로가기는 「한 칸 위로」다.
+   ★ 브라우저 자취의 깊이를 앱의 층수와 똑같이 맞춘다.
+   앞으로 갈 때(손가락이 닿은 그 순간)만 자취를 쌓는다 — 크롬은 손짓 없이 쌓은
+   자취를 건너뛰어 버리므로, popstate 안에서 쌓으면 앱이 통째로 닫힌다. */
+const level=()=> path.length + (cur?1:0) + (tab!=='tree'?1:0) + ((typeof PON!=='undefined'&&PON)?1:0);
+let LV=0, IGN=0;
+function stamp(){ try{ history.replaceState({kyl:1},'',hashNow()); }catch(e){} }
+function push(fn){
+  const before=LV;
+  fn(); render();
+  const now=level();
+  if(now>before){ for(let i=0;i<now-before;i++){ try{ history.pushState({kyl:1},'',hashNow()); }catch(e){} } stamp(); }
+  else if(now<before){ IGN=before-now; try{ history.go(-(before-now)); }catch(e){} }
+  else stamp();
+  LV=now;
 }
-function push(fn){ fn(); render(); sync(); }
+const sync=stamp;
 /* 주소창에서 # 뒤만 바꾸면 브라우저는 페이지를 다시 읽지 않는다.
    그때는 hashchange 만 오므로 여기서 받아 그 경을 연다. */
 addEventListener('hashchange',()=>{
   const h=location.hash.replace(/^#/,'');
-  if(!h){ if(cur){ cur=null; render(); sync(); } return; }
+  if(!h){ if(cur){ cur=null; render(); LV=level(); stamp(); } return; }
   const r=byId(h);
   if(!r){ toast('그런 이름의 경을 찾지 못했습니다'); return; }
   if(r===cur) return;
   cur=r; tab='tree';
   hits[r]=(hits[r]||0)+1; S.set('hits',hits);
   recent=[r].concat(recent.filter(x=>x!==r)).slice(0,60); S.set('recent',recent);
-  render(); sync();
+  render(); LV=level(); stamp();
 });
-addEventListener('popstate',e=>{
-  SPARE=false;
+addEventListener('popstate',()=>{
+  if(IGN>0){ IGN--; if(!IGN){ LV=level(); stamp(); } return; }   // 우리가 되감은 것
   const box=$('install');
-  if(box && box.classList.contains('show')){ box.classList.remove('show'); sync(); return; }
-  if(typeof PON!=='undefined' && PON){ pickOff(); sync(); return; }   // 고르기 중이면 그것부터 그만
-  if(atRoot()) return;              // 뿌리에서는 붙잡지 않는다 — 그대로 앱 밖으로
-  goUp(true);                       // 한 칸 위로
-  sync();
+  if(box && box.classList.contains('show')) box.classList.remove('show');
+  if(typeof PON!=='undefined' && PON){ pickOff(true); LV=level(); stamp(); return; }
+  if(LV<=0) return;                       // 더 갈 데 없음 — 그대로 앱 밖으로
+  goUp(true); LV=level(); stamp();
 });
 
 function open(r){
@@ -1183,6 +1237,23 @@ $('mode').onclick=()=>{
   }
   $('mode').textContent=['⇄','한','P'][mode]; };
 $('top').onclick=()=>scrollTo({top:0,behavior:'smooth'});
+$('bot').onclick=()=>scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+/* 읽는 동안에는 단추가 비켜선다 — 내리면 숨고, 올리거나 멈추면 다시 나온다.
+   글 아무 데나 한 번 누르는 것으로도 껐다 켰다 한다. */
+let LY=0, FT=null;
+addEventListener('scroll',()=>{
+  const F=$('fabs'); if(!F||F.style.display==='none') return;
+  const y=scrollY, d=y-LY; LY=y;
+  if(d>6 && y>120) F.classList.add('hid');
+  else if(d<-6) F.classList.remove('hid');
+  clearTimeout(FT); FT=setTimeout(()=>F.classList.remove('hid'),1400);
+},{passive:true});
+document.addEventListener('click',e=>{
+  if(PON) return;
+  if(!e.target.closest('article')) return;
+  if(e.target.closest('a,button,summary')) return;
+  const F=$('fabs'); if(F) F.classList.toggle('hid');
+},true);
 /* ── 골라 베끼기 · 보내기 ───────────────────── */
 let PICK=new Set(), PMODE='ko', PON=0;
 const HTML=document.documentElement;
@@ -1199,10 +1270,14 @@ function pickToggle(u){
   if(PICK.has(u)) PICK.delete(u); else PICK.add(u);
   pickRefresh();
 }
-function pickOff(){ PON=0; PICK.clear(); pickRefresh(); }
+function pickOff(raw){
+  if(!PON) return;
+  if(raw){ PON=0; PICK.clear(); pickRefresh(); return; }
+  push(()=>{ PON=0; PICK.clear(); pickRefresh(); });
+}
 function pickStart(){
-  if(!cur) return;
-  PON=1; PICK.clear(); pickRefresh();
+  if(!cur||PON) return;
+  push(()=>{ PON=1; PICK.clear(); pickRefresh(); });
   toast('옮길 대목을 눌러 고르십시오');
 }
 /* 고른 단위를 글로 뽑는다 — 화면 모드와 상관없이 원본에서 다시 만든다 */
@@ -1324,9 +1399,10 @@ function litTab(){
 document.querySelectorAll('nav.tab button').forEach(b=>b.onclick=()=>{
   if(b.dataset.act==='home') return goHome();
   if(b.dataset.tab==='find') findEnter();
-  if(b.dataset.act==='up')   return goUp();
-  if(b.dataset.tab===tab && !cur) return;
-  push(()=>{ tab=b.dataset.tab; cur=null; });
+  if(b.dataset.tab===tab) return;
+  /* 찾기는 보던 경을 그대로 두고 덧씌운다 — 뒤로 누르면 읽던 경으로 돌아오게 */
+  if(b.dataset.tab==='find') push(()=>{ tab='find'; });
+  else push(()=>{ tab=b.dataset.tab; cur=null; });
 });
 
 /* ── 홈 화면에 추가 ─────────────────────── */
