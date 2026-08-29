@@ -860,6 +860,32 @@ function mapNo(n){
   if(g.length===1) return g[0].length>=3? g[0] : ('00'+g[0]).slice(-3);
   return g.map(x=> x.length>=2? x : '0'+x).join('-');
 }
+/* 그 갈래에 놓인 것이 모두 같은 마디에 들면 앞마디는 군더더기다 — 03-02 → 02 */
+function docNo(rel){
+  const d=D.docs[rel]; if(!d) return '';
+  let no=mapNo(d.n); if(!no||no.indexOf('-')<0) return no;
+  const nd=D.nodes[rel.split('/').slice(0,-1).join('/')]; if(!nd) return no;
+  const NO=nd.d.filter(x=>!/000_목차/.test(x)).map(x=>mapNo(D.docs[x].n));
+  if(NO.length && NO.every(x=>x && x.indexOf('-')>0)){
+    const h=NO.map(x=>x.split('-')[0]);
+    if(h.every(x=>x===h[0])) no=no.slice(no.indexOf('-')+1);
+  }
+  return no;
+}
+/* 이 편이 어디에 있는지 한 줄로 — 경장(Sutta) → 쿳다까(KN) → 이띠웃따까(여시어경) → 091 지위까 */
+function whereOf(rel){
+  const d=D.docs[rel]; if(!d) return '';
+  const ps=rel.split('/'), out=[];
+  for(let i=1;i<ps.length;i++){
+    const n=D.nodes[ps.slice(0,i).join('/')];
+    if(!n || !n.l) continue;
+    if(i===1 && n.l==='정전') continue;          // 정전은 말할 것도 없다
+    out.push(n.l);
+  }
+  const no=docNo(rel);
+  out.push((no? no+' ' : '')+(d.t||d.n));
+  return out.join(' → ');
+}
 function viewMap(keepR){
   $('title').textContent='지도';
   const oL=M.querySelector('.mL'), oR=M.querySelector('.mR');
@@ -881,13 +907,7 @@ function viewMap(keepR){
   for(const c of nd.k){ const x=D.nodes[c];
     r+='<div class="it" data-md="'+c+'"><b>'+x.l+'</b><small>'+x.n.toLocaleString()+'편</small><span class="ar">›</span></div>'; }
   const dd=nd.d.filter(rel=>!IDX.test(rel));
-  const NO=dd.map(rel=>mapNo(D.docs[rel].n));
-  /* 이 칸에 놓인 것이 모두 같은 마디에 든다면 그 앞마디는 군더더기다 — 03-01 → 01 */
-  const head=NO.filter(Boolean).map(x=>x.split('-')[0]);
-  if(head.length && head.length===NO.length && NO.every(x=>x.indexOf('-')>0)
-     && head.every(x=>x===head[0]))
-    for(let i=0;i<NO.length;i++) NO[i]=NO[i].slice(NO[i].indexOf('-')+1);
-  dd.forEach((rel,ix)=>{ const d=D.docs[rel], no=NO[ix];
+  dd.forEach(rel=>{ const d=D.docs[rel], no=docNo(rel);
     r+='<div class="it doc" data-mo="'+rel+'"><b>'
       +(no?'<em class="no">'+no+'</em>':'')+(d.t||d.n)+'</b>'
       +(d.i||d.p?'<small>'+(d.i||d.p)+'</small>':'')+'</div>'; });
@@ -1474,11 +1494,15 @@ function pickText(){
   const d=D.docs[cur]; if(!d) return '';
   const keep=[...PICK];
   const save=mode, out=[];
-  const grab=m=>{ mode=m; const h=md2html(d.c,''); mode=save;
+  /* pali 가 true 면 팔리 문단만, false 면 한글 문단만 거둔다.
+     화면 모드는 늘 0(둘 다)으로 그려 두고 여기서 갈라낸다 — 모드 2는 CSS 로만 숨기므로
+     이 자리에서 그대로 쓰면 한글이 두 번 들어간다. */
+  const grab=pali=>{ mode=0; const h=md2html(d.c,''); mode=save;
     const box=document.createElement('div'); box.innerHTML=h;
     const map={};
     box.querySelectorAll('p[data-u]').forEach(p=>{
       const u=p.dataset.u; if(!keep.includes(u)) return;
+      if(p.classList.contains('pali')!==pali) return;
       p.querySelectorAll('.mkin,.fn,.fnb').forEach(x=>x.remove());
       p.querySelectorAll('br').forEach(x=>x.replaceWith('\n'));
       const t=p.textContent||'';
@@ -1502,25 +1526,24 @@ function pickText(){
   let last=null;
   const head=u=>{ const s=secOf[u]; if(s===last) return;
     last=s; if(SEC[s]) out.push('\n'+SEC[s]); };
+  /* §게송1 · §산문2 같은 표지는 넣지 않는다 — 읽는 이에게는 군더더기다 */
   if(PMODE==='both'){
-    const pa=grab(2), ko=grab(1);
+    const pa=grab(true), ko=grab(false);
     for(const u of order){
-      const a=(pa[u]||[]).join(' '), b=(ko[u]||[]).join(' ');
-      const t=[u+' '+a, b].filter(Boolean).join('\n');
+      const a=(pa[u]||[]).join('\n'), b=(ko[u]||[]).join('\n');
+      const t=[a,b].filter(Boolean).join('\n');      // 팔리 다음 줄에 한글
       if(t.trim()){ head(u); out.push(t); }
     }
     return out.join('\n\n');
   }
-  const m=grab(PMODE==='pa'?2:1);
-  for(const u of order){ const t=(m[u]||[]).join(' ');
-    if(t){ head(u); out.push(u+' '+t); } }
+  const m=grab(PMODE==='pa');
+  for(const u of order){ const t=(m[u]||[]).join('\n');
+    if(t.trim()){ head(u); out.push(t); } }
   return out.join('\n\n');
 }
 function pickPayload(){
-  const d=D.docs[cur];
-  const body=pickText();
-  const src='— '+(d.t||disp(cur))+(d.s?' · '+d.s.split(' / ').slice(1).join(' ')||'':'');
-  return body+'\n\n'+src.trim()+'\n'+linkOf(cur);
+  /* 자리 한 줄 → 본문 → 주소. 그것뿐이다. */
+  return whereOf(cur)+'\n\n'+pickText()+'\n\n'+linkOf(cur);
 }
 document.addEventListener('click',e=>{
   const seg=e.target.closest('#pick [data-pm]');
