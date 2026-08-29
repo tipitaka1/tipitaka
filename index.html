@@ -451,8 +451,8 @@ html.picking #toast{bottom:calc(env(safe-area-inset-bottom) + 190px)}
 <div id="pick" style="display:none">
   <div class="cnt"><b id="pn">0</b>곳 골랐습니다 <span class="hint">— 대목을 눌러 고르십시오</span></div>
   <div class="seg3">
-    <button data-pm="ko" class="on">한글</button>
-    <button data-pm="both">한글+팔리</button>
+    <button data-pm="both" class="on">한글+팔리</button>
+    <button data-pm="ko">한글</button>
     <button data-pm="pa">팔리</button>
   </div>
   <div class="act">
@@ -1464,7 +1464,7 @@ document.addEventListener('click',e=>{
   fabFold(!C.fab);
 },true);
 /* ── 골라 베끼기 · 보내기 ───────────────────── */
-let PICK=new Set(), PMODE='ko', PON=0;
+let PICK=new Set(), PMODE='both', PON=0;
 const HTML=document.documentElement;
 function pickRefresh(){
   const on=!!PON;
