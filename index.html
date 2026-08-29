@@ -183,6 +183,11 @@ nav.pn b{display:block;font-size:.86em;font-weight:700;margin-top:2px;
 nav.pn .n{text-align:right}
 nav.pn a.p b::before{content:'‹ '}
 nav.pn a.n b::after{content:' ›'}
+#install .oc{display:flex;gap:8px;margin:12px 0 10px}
+#install .oc button{flex:1;padding:11px 8px;border-radius:10px;font-size:.9em;font-weight:700;
+  border:1px solid var(--accent);color:var(--accent);background:none}
+#install .oc button[data-go="copy"]{border-color:var(--line);color:var(--dim);font-weight:400}
+#install .id small{display:block;color:var(--dim);font-size:.78em;line-height:1.65}
 .crumb{color:var(--dim);font-size:.78em;padding:2px 2px 8px;line-height:1.5}
 .crumb span{cursor:pointer}
 .crumb span:not(:last-child)::after{content:' › ';color:var(--line)}
@@ -1491,7 +1496,9 @@ document.querySelectorAll('nav.tab button').forEach(b=>b.onclick=()=>{
 
 /* ── 홈 화면에 추가 ─────────────────────── */
 let defer=null;
-addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); defer=e; });
+addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); defer=e;
+  /* 이 신호는 첫 화면이 그려진 뒤에 오기도 한다 — 그때 안내를 다시 띄운다 */
+  if(D && !standalone() && !S.get('noask',0)) setTimeout(askInstall,300); });
 const standalone=()=>matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 /* 카톡·네이버 같은 앱 속 브라우저 — 여기서는 홈 화면 추가가 안 된다 */
 const INAPP=(()=>{ const u=navigator.userAgent;
@@ -1506,14 +1513,17 @@ const INAPP=(()=>{ const u=navigator.userAgent;
 function askInstall(){
   if(standalone() || S.get('noask',0)) return;
   const ios=/iP(hone|ad|od)/.test(navigator.userAgent);
-  if(INAPP){                                       // 앱 속 브라우저 — 밖으로 나가는 길을 알려 준다
+  if(INAPP){                                       // 앱 속 브라우저 — 크롬으로 곧장 건네준다
     const box=$('install');
+    const and=/Android/i.test(navigator.UserAgent||navigator.userAgent);
     box.querySelector('.it').textContent=INAPP+' 안에서 보고 계십니다';
     box.querySelector('.id').innerHTML=
-      '여기서는 홈 화면에 넣을 수 없습니다. 밖으로 한 번만 나가면 앱처럼 쓸 수 있습니다.'
-      +'<ol><li>오른쪽 위 <b>⋮</b> (또는 <b>···</b>) 를 누르세요</li>'
-      +'<li><b>「다른 브라우저로 열기」</b> — 크롬을 고르세요</li>'
-      +'<li>크롬에서 다시 이 안내가 뜹니다. 그때 <b>홈 화면에 추가</b></li></ol>';
+      '여기서는 홈 화면에 넣을 수 없습니다. 크롬으로 한 번만 옮기면 앱처럼 쓸 수 있습니다.'
+      +'<div class="oc"><button data-go="chrome">크롬으로 열기</button>'
+      +'<button data-go="copy">주소 복사</button></div>'
+      +'<small>단추가 듣지 않으면 — 오른쪽 위 <b>⋮</b>(또는 <b>···</b>) → '
+      +(and? '<b>「다른 브라우저로 열기」</b>':'<b>「Safari로 열기」</b>')+' 를 고르세요.<br>'
+      +'크롬으로 옮기면 <b>홈 화면에 추가</b> 안내가 다시 뜹니다.</small>';
     box.querySelector('#iyes').textContent='알겠습니다';
     box.querySelector('#ino').textContent='그냥 보기';
     setTimeout(()=>box.classList.add('show'), 1500);
@@ -1526,6 +1536,31 @@ function askInstall(){
   if(ios) $('iyes').textContent='알겠습니다';
   setTimeout(()=>box.classList.add('show'), 1200);
 }
+/* 앱 속 브라우저에서 밖으로 나가는 길 —
+   안드로이드는 intent: 로 크롬에 곧장 넘긴다. 아이폰은 크롬 스킴을 쓰고, 없으면 안내대로. */
+function outChrome(){
+  const bare=location.href.replace(/^https?:\/\//,'');
+  const ua=navigator.userAgent;
+  if(/Android/i.test(ua)){
+    location.href='intent://'+bare+'#Intent;scheme=https;package=com.android.chrome;'
+      +'S.browser_fallback_url='+encodeURIComponent(location.href)+';end';
+  }else{
+    location.href='googlechrome://'+bare;
+    setTimeout(()=>toast('크롬이 없으면 ⋮ → Safari로 열기 를 고르세요'),1200);
+  }
+}
+document.addEventListener('click',e=>{
+  const g=e.target.closest('#install [data-go]'); if(!g) return;
+  e.preventDefault();
+  if(g.dataset.go==='chrome') return outChrome();
+  const u=location.href;
+  (navigator.clipboard? navigator.clipboard.writeText(u) : Promise.reject())
+    .then(()=>toast('주소를 베꼈습니다 — 크롬 주소창에 붙여 넣으세요'))
+    .catch(()=>{ const t=document.createElement('textarea'); t.value=u;
+      document.body.appendChild(t); t.select();
+      try{ document.execCommand('copy'); toast('주소를 베꼈습니다'); }catch(_){ toast(u); }
+      t.remove(); });
+},true);
 $('ino').onclick=()=>{ S.set('noask',1); $('install').classList.remove('show'); };
 $('iyes').onclick=async()=>{
   $('install').classList.remove('show');
